@@ -1,6 +1,8 @@
 import datetime
 import dateutil.parser
 import os.path
+import logging
+from colorama import Fore, Style, init
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -9,6 +11,19 @@ from googleapiclient.errors import HttpError
 
 # If modifying these scopes, delete the file token.json.
 SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
+# Initialize colorama
+init(autoreset=True)
+
+def printMenu():
+    print(Fore.CYAN + "Menu:")
+    print(Fore.CYAN + "1. Count calendar events up to today")
+    print(Fore.CYAN + "2. Count calendar events from start to end date")
+    print(Fore.CYAN + "3. List upcoming 10 events")
+    print(Fore.CYAN + "4. Exit")
+
+def getChoice():
+    choice = input(Fore.MAGENTA + "Enter your choice (1-4): ")
+    return choice
 
 ###########################################
 ##### Google Authentication function  #####
@@ -140,23 +155,55 @@ def getEvents():
   except HttpError as error:
     print(f"An error occurred: {error}")
 
+def getDateInput():
+  while True:
+    day = input("Enter the day: ")
+    month = input("Enter the month: ")
+    year = input("Enter the year: ")
+    try:
+      date = datetime.datetime(int(year), int(month), int(day))
+      return date
+    except ValueError:
+      print("Invalid date. Please enter a valid day, month, and year.")
+
+
 ########################
 ##### Main Program #####
 ########################
 def main():
-  print("-------------------------")
-  getEvents()
-  print("-------------------------")
-  ##### CALENDAR INQUIRY
-  event_title = "Palestra"
-  start_date = "2024-09-01"
-  end_date = "2024-10-30"
-  
-  num_events = countCalendarEvents(event_title, start_date, end_date)
-  print(f"Number of '{event_title}' events from {start_date} to {end_date}: {num_events}")
-  print(" ")
-  num_events = countCalendarEventsToday(event_title, start_date)
-  print(f"Number of '{event_title}' events from {start_date} up to today: {num_events}")
+  ### Menu Options - START
+  while True:
+        printMenu()
+        choice = getChoice()
+        if choice == '1':
+            print(Fore.YELLOW + "You selected Option 1.")
+            #== Date input - START
+            date = getDateInput()
+            print("You entered:", date)
+            #== Date input - END
+            event_title = "Palestra"
+            start_date = "2024-09-01"
+            num_events = countCalendarEventsToday(event_title, start_date)
+            print(f"Number of '{event_title}' events from {start_date} up to today: {num_events}")
+            break
+        elif choice == '2':
+            print(Fore.YELLOW + "You selected Option 2.")
+            event_title = "Palestra"
+            start_date = "2024-09-01"
+            end_date = "2024-10-30"
+            num_events = countCalendarEvents(event_title, start_date, end_date)
+            print(f"Number of '{event_title}' events from {start_date} to {end_date}: {num_events}")
+            print(" ")
+            break
+        elif choice == '3':
+            print(Fore.YELLOW + "You selected Option 3.")
+            getEvents()
+            break
+        elif choice == '4':
+            print(Fore.RED + "Exiting the program. Goodbye!")
+            break
+        else:
+            print(Fore.RED + "Invalid choice. Please try again.")
 
 
 ##########################
