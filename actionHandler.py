@@ -14,7 +14,7 @@ def getDateInput():
       date = dateMgr.getDate(day, month, year)
       return date
     except ValueError:
-      print("Invalid date. Please enter a valid day, month, and year.")
+      print(Fore.RED + "Invalid date. Please enter a valid day, month, and year.")
 
 #################################################
 ##### Calendar management handler functions #####

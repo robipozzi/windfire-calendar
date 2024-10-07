@@ -18,33 +18,36 @@ init(autoreset=True)
 ##### Google Authentication function #####
 ##########################################
 def authenticate():
-  # Authenticates the user and sets the global credentials variable.
-  global credentials
-  creds = None
-  # The file token.json stores the user's access and refresh tokens, and is
-  # created automatically when the authorization flow completes for the first time.
-  if os.path.exists("token.json"):
-    creds = Credentials.from_authorized_user_file("token.json", SCOPES)
-    print("Credentials got from token.json")
-  # If there are no (valid) credentials available, let the user log in.
-  if not creds or not creds.valid:
-    print("Credentials not found, logging in ...")
-    if creds and creds.expired and creds.refresh_token:
-      print("Credentials expired, refreshing ...")
-      creds.refresh(Request())
-    else:
-      print("Authenticating using settings from credentials.json ...")
-      flow = InstalledAppFlow.from_client_secrets_file(
-          "credentials.json", SCOPES
-      )
-      creds = flow.run_local_server(port=0)
-    # Save the credentials for the next run
-    with open("token.json", "w") as token:
-      print("Authenticating using credentials.json and saving credentials to token.json ...")
-      token.write(creds.to_json())
-      print("Credentials saved to token.json")
-      
-  credentials = creds
+    try:
+        # Authenticates the user and sets the global credentials variable.
+        global credentials
+        creds = None
+        # The file token.json stores the user's access and refresh tokens, and is
+        # created automatically when the authorization flow completes for the first time.
+        if os.path.exists("token.json"):
+            creds = Credentials.from_authorized_user_file("token.json", SCOPES)
+            print("Credentials got from token.json")
+        # If there are no (valid) credentials available, let the user log in.
+        if not creds or not creds.valid:
+            print("Credentials not found, logging in ...")
+            if creds and creds.expired and creds.refresh_token:
+                print("Credentials expired, refreshing ...")
+                creds.refresh(Request())
+            else:
+                print("Authenticating using settings from credentials.json ...")
+                flow = InstalledAppFlow.from_client_secrets_file(
+                    "credentials.json", SCOPES
+                )
+                creds = flow.run_local_server(port=0)
+            # Save the credentials for the next run
+            with open("token.json", "w") as token:
+                print("Authenticating using credentials.json and saving credentials to token.json ...")
+                token.write(creds.to_json())
+                print("Credentials saved to token.json")
+            
+        credentials = creds
+    except HttpError:
+       print(Fore.RED + "HTTP Error")
 
 ######################################
 ##### Calendar inquiry functions #####
@@ -100,7 +103,7 @@ def countCalendarEvents(event_title, start_date, end_date):
     return len(events)
   
   except HttpError as error:
-    print(f"An error occurred: {error}")
+    print(Fore.RED + f"An error occurred: {error}")
 
 ##### List 10 upcoming calendar events
 """
@@ -136,7 +139,6 @@ def getUpcomingEvents():
     return events
 
   except HttpError as error:
-    print(f"An error occurred: {error}")
-
+    print(Fore.RED + f"An error occurred: {error}")
 
 authenticate()

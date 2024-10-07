@@ -8,7 +8,7 @@ init(autoreset=True)
 ##### Menu options management functions #####
 #############################################
 def printMenu():
-    print(Fore.CYAN + "Menu:")
+    print(Style.BRIGHT + Fore.CYAN + "Menu:")
     print(Fore.CYAN + "1. Count calendar events up to today")
     print(Fore.CYAN + "2. Count calendar events from start to end date")
     print(Fore.CYAN + "3. List upcoming 10 events")
