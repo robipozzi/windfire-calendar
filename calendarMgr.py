@@ -43,7 +43,7 @@ def authenticate():
       print("Authenticating using credentials.json and saving credentials to token.json ...")
       token.write(creds.to_json())
       print("Credentials saved to token.json")
-
+      
   credentials = creds
 
 #############################################
@@ -229,7 +229,6 @@ def main():
             break
         else:
             print(Fore.RED + "Invalid choice. Please try again.")
-
 
 ##########################
 ##### Main Execution #####
