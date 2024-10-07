@@ -1,5 +1,9 @@
 import datetime
 import dateutil.parser
+from colorama import Fore, Style, init
+
+# Initialize colorama
+init(autoreset=True)
 
 def formatDate(date, format):
   # Ensure day, month, and year are integers
