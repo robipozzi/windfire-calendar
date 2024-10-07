@@ -64,7 +64,7 @@ Returns:
   The number of events found.
 """
 def countCalendarEventsToday(event_title, start_date):
-  end_date = dateMgr.getTodayDate()
+  end_date = dateMgr.getTodayDateTime()
   return countCalendarEvents(event_title, start_date, end_date)
 
 ##### Count calendar events from start date up to end date
@@ -122,7 +122,7 @@ def getUpcomingEvents():
     service = build('calendar', 'v3', credentials=credentials)
 
     # Call the Calendar API
-    now = dateMgr.getDateTimeIsoFormat(dateMgr.getTodayDate())
+    now = dateMgr.getDateTimeIsoFormat(dateMgr.getTodayDateTime())
     print("Getting the upcoming 10 events")
     events_result = (service.events().list(
             calendarId="primary",

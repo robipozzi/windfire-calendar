@@ -46,7 +46,7 @@ def countCalendarEventsHandler():
   # Call Calendar events management service
   event_title = "Palestra"
   start_date = dateMgr.formatDate(startDate, "YYYY-MM-DD")
-  end_date = dateMgr.formatDate(endDate, "YYYY-MM-DD")
+  end_date = dateMgr.formatDateTimeEndOfDay(endDate)
   num_events = calendarService.countCalendarEvents(event_title, start_date, end_date)
   print(f"Number of '{event_title}' events from {start_date} to {end_date}: {num_events}")
 
