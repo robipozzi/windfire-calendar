@@ -8,4 +8,11 @@ This allows to run python programs in an environment that is virtually segregate
 
 Some convenient scripts are provided to facilitate the creation and activation of Python Virtual environment:
 * **[createPythonVenv.sh](createPythonVenv.sh)** : it creates the Python Virtual Environment; this basically just creates a subfolder *google-calendar* (this can be set in **[setVars.sh](setVars.sh)** script) under the project root, where all the Python interpreter, libraries, and required dependencies will be placed.
-* **[activatePythonVenv.sh.sh](activatePythonVenv.sh.sh)** : it activates Python Virtual Environment; the script is "smart" enough to first create the virtual environment, if it does not exists 
+* **[activatePythonVenv.sh](activatePythonVenv.sh)** : it activates Python Virtual Environment; the script is "smart" enough to first create the virtual environment, if it does not exists 
+* **[installPrereqs.sh](installPrereqs.sh)** : it download all the python modules that the project needs to work correctly, run it only after having activated the Virtual environment.
+
+## Run the application
+The application is a very simple, command line based kind of application: to run it just launch **[run-calendar.sh](run-calendar.sh)** script.
+
+The program will just present the following menu, exposing to the user
+![](img/launch-menu.png)
