@@ -14,5 +14,12 @@ Some convenient scripts are provided to facilitate the creation and activation o
 ## Run the application
 The application is a very simple, command line based kind of application: to run it just launch **[run-calendar.sh](run-calendar.sh)** script.
 
-The program will just present the following menu, exposing to the user
+The program will just present the following menu, exposing to the user 4 different query functions
+
 ![](img/launch-menu.png)
+
+By selecting the appropriate menu options, the user will be able to
+* get the count of calendar events for a specific year 
+* get the count of calendar events from a specific date up to today
+* get the count of calendar events between two specific dates
+* get the count of the next 10 events in calendar
