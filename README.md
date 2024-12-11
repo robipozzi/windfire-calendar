@@ -1,1 +1,1 @@
-# windfire-calendar
+# Windfire Calendar

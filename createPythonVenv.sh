@@ -3,16 +3,16 @@ source ./setVars.sh
 # ***** Create Python Virtual environment
 run()
 {
-    printf "${grn}Creating Python3 Virtual Environment ...${end}\n"
-    python3 -m venv google-calendar
-    printf "${grn}Python3 Virtual Environment created${end}\n"
+    echo ${grn}Creating Python3 Virtual Environment ...${end}
+    python3 -m venv $PYTORCH_VIRTUAL_ENV
+    echo ${grn}Python3 Virtual Environment created${end}
 }
 
 deactivateVenv()
 {
-    printf "${grn}Deactivating Python3 Virtual Environment ...${end}\n"
+    echo ${grn}Deactivating Python3 Virtual Environment ...${end}
     #deactivate
-    printf "${grn}Python3 Virtual Environment deactivated${end}\n"
+    echo ${grn}Python3 Virtual Environment deactivated${end}
 }
 
 # ***** MAIN EXECUTION

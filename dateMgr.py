@@ -1,4 +1,4 @@
-import datetime
+from datetime import date, datetime
 import dateutil.parser
 from colorama import Fore, Style, init
 
@@ -41,3 +41,42 @@ def getDateTimeIsoFormat(date):
 def getTodayDateTime():
   today = datetime.date.today()
   return datetime.datetime.combine(today, datetime.time(23, 59, 59)).strftime("%Y-%m-%d %H:%M:%S")
+
+def isCurrentYear(year):
+  is_current_year = True
+
+  # Extract year from current date (today)
+  today = date.today()
+  today_year = today.year
+  print(f"****** Today year: {today_year}")
+
+  # Check whether year is before current year
+  print(f"****** Year: {year}")
+  if(year < today_year):
+     is_current_year = False
+
+  return is_current_year
+
+def isFuture(year):
+  is_future = False
+  # Extract year from current date (today)
+  today = date.today()
+  today_year = today.year
+  print(f"****** Today year: {today_year}")
+  # Check whether year is before current year
+  print(f"****** Year: {year}")
+  if(year > today_year):
+     print(Fore.RED + f"This year {year} is in the future.")
+     is_future = True
+     
+  return is_future
+
+def isFutureDate(user_date):
+  is_future = False
+  # Extract year from current date (today)
+  today = date.today()
+  if user_date > today:
+    print(Fore.RED + f"This date {user_date} is in the future.")
+    is_future = True
+    
+  return is_future
