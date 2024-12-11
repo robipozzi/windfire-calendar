@@ -11,6 +11,8 @@ Some convenient scripts are provided to facilitate the creation and activation o
 * **[activatePythonVenv.sh](activatePythonVenv.sh)** : it activates Python Virtual Environment; the script is "smart" enough to first create the virtual environment, if it does not exists 
 * **[installPrereqs.sh](installPrereqs.sh)** : it download all the python modules that the project needs to work correctly, run it only after having activated the Virtual environment.
 
+To deactivate and exit from the Python Virtual Environment just input **deactivate** command in the terminal.
+
 ## Run the application
 The application is a very simple, command line based kind of application: to run it just launch **[run-calendar.sh](run-calendar.sh)** script.
 
