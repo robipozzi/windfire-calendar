@@ -11,5 +11,5 @@ coffee3="${coffee} ${coffee} ${coffee}"
 ##### Terminal Colors - END
 
 ###### Variable section - START
-
+PYTORCH_VIRTUAL_ENV=google-calendar
 ###### Variable section - END

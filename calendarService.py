@@ -5,6 +5,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 import dateMgr
+from datetime import date
 from colorama import Fore, Style, init
 
 # If modifying these scopes, delete the file token.json.
@@ -52,6 +53,36 @@ def authenticate():
 ######################################
 ##### Calendar inquiry functions #####
 ######################################
+##### Count calendar events for a specific year
+"""
+Counts events in a Google Calendar for a specific year.
+If the year is the current year, the service will return the events up to current day.
+If the year is not the current year but a previous one, the service will return all the events for the year.
+
+Args:
+  event_title: The title of the events to count.
+  year: The year to count events for.
+
+Returns:
+  The number of events found.
+"""
+def countCalendarEventsYear(event_title, year):
+  start_date = date(year, 1, 1)
+  is_current_year = dateMgr.isCurrentYear(year)
+  
+  # if year is current year, the end date is current day (i.e.: today)
+  if(is_current_year):
+    print("Year is current year: the end date will be set to current day (i.e.: today)")
+    end_date = date.today()
+  # if year is not current year, the end date is 31.12.yyyy
+  else:
+    print("Year is not current year: the end date will be set to 31.12.yyyy")
+    end_date = date(year, 12, 31)
+
+  print(f"****** start_date: {start_date}")
+  print(f"****** end_date: {end_date}")
+  return countCalendarEvents(event_title, start_date, end_date)
+
 ##### Count calendar events from start date up to Today included
 """
 Counts events in a Google Calendar timeframe from start_date up to Today included.
@@ -64,7 +95,7 @@ Returns:
   The number of events found.
 """
 def countCalendarEventsToday(event_title, start_date):
-  end_date = dateMgr.getTodayDateTime()
+  end_date = date.today()
   return countCalendarEvents(event_title, start_date, end_date)
 
 ##### Count calendar events from start date up to end date
@@ -85,10 +116,9 @@ def countCalendarEvents(event_title, start_date, end_date):
     service = build('calendar', 'v3', credentials=credentials)
     
     # Convert start_date and end_date to datetime objects ISO 8601 format
-    start_time = dateMgr.getDateTimeIsoFormat(start_date)
-    end_time = dateMgr.getDateTimeIsoFormat(end_date)
-
-    print(f"Getting '{event_title}' events from {start_date} to {end_date}")
+    start_time = dateMgr.getDateTimeIsoFormat(dateMgr.formatDate(start_date, "YYYY-MM-DD"))
+    end_time = dateMgr.getDateTimeIsoFormat(dateMgr.formatDateTimeEndOfDay(end_date))
+    print(f"Getting '{event_title}' events from {start_time} to {end_time}")
 
     events_result = service.events().list(
         calendarId='primary',
