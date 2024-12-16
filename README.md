@@ -13,7 +13,7 @@ Some convenient scripts are provided to facilitate the creation and activation o
 
 To deactivate and exit from the Python Virtual Environment just input **deactivate** command in the terminal.
 
-## Run the application
+## Run the terminal-based application
 The application is a very simple, command line based kind of application: to run it just launch **[run-calendar.sh](run-calendar.sh)** script.
 
 The program will just present the following menu, exposing to the user 4 different query functions
@@ -25,3 +25,6 @@ By selecting the appropriate menu options, the user will be able to
 * get the count of calendar events from a specific date up to today
 * get the count of calendar events between two specific dates
 * get the count of the next 10 events in calendar
+
+## Run the web service
+[TODO]
