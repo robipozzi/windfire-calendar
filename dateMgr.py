@@ -1,10 +1,20 @@
-from datetime import date, datetime
+from datetime import date, datetime, time
 import dateutil.parser
 from colorama import Fore, Style, init
 
 # Initialize colorama
 init(autoreset=True)
 
+"""
+  Formats a date object into a string in the "YYYY-MM-DD" format.
+
+  Args:
+    date: An object with 'day', 'month', and 'year' attributes (typically a datetime.date or similar).
+    format: Unused parameter, included for compatibility.
+
+  Returns:
+    str: The formatted date string in "YYYY-MM-DD" format.
+"""
 def formatDate(date, format):
   # Ensure day, month, and year are integers
   day = int(date.day)
@@ -15,6 +25,15 @@ def formatDate(date, format):
   print(f"Formatted Date: {formattedDate}")
   return formattedDate
 
+"""
+  Formats a date object into a string representing the end of that day ("YYYY-MM-DD 23:59:59").
+
+  Args:
+    date: An object with 'day', 'month', and 'year' attributes (typically a datetime.date or similar).
+
+  Returns:
+    str: The formatted date string in "YYYY-MM-DD 23:59:59" format.
+"""
 def formatDateTimeEndOfDay(date):
   # Ensure day, month, and year are integers
   day = int(date.day)
@@ -38,9 +57,15 @@ def getDateTimeIsoFormat(date):
   time = datetime.isoformat('T') + 'Z'
   return time
 
+"""
+  Returns today's date with the time set to 23:59:59 as a string in 'YYYY-MM-DD HH:MM:SS' format.
+"""
 def getTodayDateTime():
-  today = datetime.date.today()
-  return datetime.datetime.combine(today, datetime.time(23, 59, 59)).strftime("%Y-%m-%d %H:%M:%S")
+  today = datetime.today()
+  end_of_day = datetime.combine(today.date(), time(23, 59, 59))
+  return end_of_day.strftime("%Y-%m-%d %H:%M:%S")
+  ##today = datetime.today()
+  ##return datetime.combine(today, datetime.time(23, 59, 59)).strftime("%Y-%m-%d %H:%M:%S")
 
 def isCurrentYear(year):
   is_current_year = True

@@ -8,12 +8,5 @@ run()
     echo ${grn}Python3 Virtual Environment created${end}
 }
 
-deactivateVenv()
-{
-    echo ${grn}Deactivating Python3 Virtual Environment ...${end}
-    #deactivate
-    echo ${grn}Python3 Virtual Environment deactivated${end}
-}
-
 # ***** MAIN EXECUTION
 run
