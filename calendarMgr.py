@@ -1,5 +1,5 @@
 from colorama import Fore, Style, init
-import actionHandler
+from handler import actionHandler
 
 # Initialize colorama
 init(autoreset=True)

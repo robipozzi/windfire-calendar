@@ -1,12 +1,13 @@
 from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
-from datetime import date, datetime
+from datetime import date
 from typing import Optional, List
-import calendarService
+from service import calendarService
 import os
 import jwt
 from jwt.exceptions import InvalidTokenError
+from log import loggingFactory
 
 SERVICE_NAME = "Windfire Calendar Service API"
 # Initialize FastAPI app
@@ -15,6 +16,9 @@ app = FastAPI(
     description="A secured REST API for Google Calendar operations",
     version="1.0.0"
 )
+
+# Initialize logger at the top so it's available everywhere
+logger = loggingFactory.get_logger('calendar_api')
 
 # Security
 security = HTTPBearer()
@@ -68,10 +72,14 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """
     Verify JWT token and return user info
     """
+    logger.debug(f"====> START - verify_token called <====")
+    logger.debug(f"*** Reading token: {credentials.credentials}")
     token = credentials.credentials
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
+        logger.debug(f"*** Decoded JWT payload: {payload}")
+        logger.debug(f"*** Decoded JWT username: {username}")
         if username is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -86,7 +94,7 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
                 detail="User not found",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-        
+        logger.debug(f"====> END - verify_token called <====")
         return user
     except InvalidTokenError:
         raise HTTPException(
@@ -99,17 +107,22 @@ def authenticate_user(username: str, password: str):
     """
     Authenticate user credentials
     """
+    logger.debug(f"====> START - authenticate_user called <====")
     user = USERS_DB.get(username)
     if not user or user["password"] != password:
+        logger.debug(f"====> END - authenticate_user called <====")
         return False
+    logger.debug(f"====> END - authenticate_user called <====")
     return user
 
 def create_access_token(data: dict):
     """
     Create JWT access token
     """
+    logger.debug(f"====> START - create_access_token called <====")
     to_encode = data.copy()
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    logger.debug(f"====> END - create_access_token called <====")
     return encoded_jwt
 
 # Authentication endpoint
@@ -118,6 +131,7 @@ async def login(auth_data: AuthToken):
     """
     Authenticate and receive JWT token
     """
+    logger.debug(f"====> START - /auth/token endpoint called <====")
     user = authenticate_user(auth_data.username, auth_data.password)
     if not user:
         raise HTTPException(
@@ -127,6 +141,7 @@ async def login(auth_data: AuthToken):
         )
     
     access_token = create_access_token(data={"sub": user["username"]})
+    logger.debug(f"====> END - /auth/token endpoint called <====")
     return {"access_token": access_token, "token_type": "bearer"}
 
 # Health check endpoint
@@ -135,6 +150,7 @@ async def health_check():
     """
     Health check endpoint
     """
+    logger.debug(f"====> /health endpoint called <====")
     return {"status": "healthy", "service": SERVICE_NAME}
 
 # Calendar endpoints
@@ -223,6 +239,7 @@ async def get_upcoming_events(current_user: dict = Depends(verify_token)):
     """
     Get the next 10 upcoming calendar events
     """
+    logger.debug("====> START - /calendar/events/upcoming endpoint called <====")
     try:
         events = calendarService.getUpcomingEvents()
         
@@ -240,7 +257,7 @@ async def get_upcoming_events(current_user: dict = Depends(verify_token)):
                 description=event.get('description', None)
             )
             formatted_events.append(formatted_event)
-        
+        logger.debug("====> END - /calendar/events/upcoming endpoint called <====")
         return UpcomingEventsResponse(
             events=formatted_events,
             count=len(formatted_events)
@@ -256,10 +273,11 @@ async def startup_event():
     """
     try:
         # The calendarService module automatically authenticates on import
-        print("Google Calendar service initialized successfully")
+        logger.info("Google Calendar service initialized successfully")
     except Exception as e:
-        print(f"Failed to initialize Google Calendar service: {e}")
+        logger.error(f"Failed to initialize Google Calendar service: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn
+    logger.info("Starting FastAPI server...")
     uvicorn.run(app, host="0.0.0.0", port=8000)

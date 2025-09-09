@@ -4,16 +4,22 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-import dateMgr
+from utils import dateMgr
 from datetime import date
 from colorama import Fore, Style, init
+from log import loggingFactory
 
 # If modifying these scopes, delete the file token.json.
 SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
+
 # Global credentials variable
 credentials = None
+
 # Initialize colorama
 init(autoreset=True)
+
+# Initialize logger at the top so it's available everywhere
+logger = loggingFactory.get_logger('calendar_service')
 
 ##########################################
 ##### Google Authentication function #####
@@ -27,28 +33,28 @@ def authenticate():
         # created automatically when the authorization flow completes for the first time.
         if os.path.exists("token.json"):
             creds = Credentials.from_authorized_user_file("token.json", SCOPES)
-            print("Credentials got from token.json")
+            logger.debug("Credentials got from token.json")
         # If there are no (valid) credentials available, let the user log in.
         if not creds or not creds.valid:
-            print("Credentials not found, logging in ...")
+            logger.debug("Credentials not found, logging in ...")
             if creds and creds.expired and creds.refresh_token:
-                print("Credentials expired, refreshing ...")
+                logger.debug("Credentials expired, refreshing ...")
                 creds.refresh(Request())
             else:
-                print("Authenticating using settings from credentials.json ...")
+                logger.debug("Authenticating using settings from credentials.json ...")
                 flow = InstalledAppFlow.from_client_secrets_file(
                     "credentials.json", SCOPES
                 )
                 creds = flow.run_local_server(port=0)
             # Save the credentials for the next run
             with open("token.json", "w") as token:
-                print("Authenticating using credentials.json and saving credentials to token.json ...")
+                logger.debug("Authenticating using credentials.json and saving credentials to token.json ...")
                 token.write(creds.to_json())
-                print("Credentials saved to token.json")
+                logger.debug("Credentials saved to token.json")
             
         credentials = creds
     except HttpError:
-       print(Fore.RED + "HTTP Error")
+       logger.debug(Fore.RED + "HTTP Error")
 
 ######################################
 ##### Calendar inquiry functions #####
@@ -67,20 +73,21 @@ Returns:
   The number of events found.
 """
 def countCalendarEventsYear(event_title, year):
+  logger.debug(f"====> calendarService.countCalendarEventsYear(event_title, year) called <====")
   start_date = date(year, 1, 1)
   is_current_year = dateMgr.isCurrentYear(year)
   
   # if year is current year, the end date is current day (i.e.: today)
   if(is_current_year):
-    print("Year is current year: the end date will be set to current day (i.e.: today)")
+    logger.debug("Year is current year: the end date will be set to current day (i.e.: today)")
     end_date = date.today()
   # if year is not current year, the end date is 31.12.yyyy
   else:
-    print("Year is not current year: the end date will be set to 31.12.yyyy")
+    logger.debug("Year is not current year: the end date will be set to 31.12.yyyy")
     end_date = date(year, 12, 31)
 
-  print(f"****** start_date: {start_date}")
-  print(f"****** end_date: {end_date}")
+  logger.debug(f"****** start_date: {start_date}")
+  logger.debug(f"****** end_date: {end_date}")
   return countCalendarEvents(event_title, start_date, end_date)
 
 ##### Count calendar events from start date up to Today included
@@ -95,6 +102,7 @@ Returns:
   The number of events found.
 """
 def countCalendarEventsToday(event_title, start_date):
+  logger.debug(f"====> calendarService.countCalendarEventsToday(event_title, start_date) called <====")
   end_date = date.today()
   return countCalendarEvents(event_title, start_date, end_date)
 
@@ -111,6 +119,7 @@ Returns:
   The number of events found.
 """
 def countCalendarEvents(event_title, start_date, end_date):
+  logger.debug(f"====> calendarService.countCalendarEvents(event_title, start_date, end_date) called <====")
   global credentials
   try:
     service = build('calendar', 'v3', credentials=credentials)
@@ -118,7 +127,7 @@ def countCalendarEvents(event_title, start_date, end_date):
     # Convert start_date and end_date to datetime objects ISO 8601 format
     start_time = dateMgr.getDateTimeIsoFormat(dateMgr.formatDate(start_date, "YYYY-MM-DD"))
     end_time = dateMgr.getDateTimeIsoFormat(dateMgr.formatDateTimeEndOfDay(end_date))
-    print(f"Getting '{event_title}' events from {start_time} to {end_time}")
+    logger.debug(f"Getting '{event_title}' events from {start_time} to {end_time}")
 
     events_result = service.events().list(
         calendarId='primary',
@@ -133,12 +142,12 @@ def countCalendarEvents(event_title, start_date, end_date):
     return len(events)
   
   except HttpError as error:
-    print(Fore.RED + f"An error occurred: {error}")
+    logger.debug(Fore.RED + f"An error occurred: {error}")
 
 ##### List 10 upcoming calendar events
 """
 Shows basic usage of the Google Calendar API. 
-Prints the start and name of the next 10 events on the user's calendar.
+logger.debugs the start and name of the next 10 events on the user's calendar.
 
 Args:
   None.
@@ -147,13 +156,14 @@ Returns:
   The number of events found.
 """
 def getUpcomingEvents():
+  logger.debug(f"====> calendarService.getUpcomingEvents() called <====")
   global credentials
   try:
     service = build('calendar', 'v3', credentials=credentials)
 
     # Call the Calendar API
     now = dateMgr.getDateTimeIsoFormat(dateMgr.getTodayDateTime())
-    print("Getting the upcoming 10 events")
+    logger.debug("Getting the upcoming 10 events")
     events_result = (service.events().list(
             calendarId="primary",
             timeMin=now,
@@ -164,11 +174,11 @@ def getUpcomingEvents():
     events = events_result.get("items", [])
 
     if not events:
-      print("No upcoming events found.")
+      logger.debug("No upcoming events found.")
       return
     return events
 
   except HttpError as error:
-    print(Fore.RED + f"An error occurred: {error}")
+    logger.debug(Fore.RED + f"An error occurred: {error}")
 
 authenticate()
