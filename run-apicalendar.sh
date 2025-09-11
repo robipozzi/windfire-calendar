@@ -1,9 +1,11 @@
-source ./setVars.sh
+source ./setEnv.sh
 
 # ***** Run FastAPI server for Google Calendar API
 run()
 {
-    python3 fastapiCalendarService.py
+    printSelectEnvironment
+    echo ${cyn}Running calendar service API in environment : $ENVIRONMENT${end} ${grn}$
+    ENVIRONMENT=$ENVIRONMENT python3 fastapiCalendarService.py
 }
 
 # ***** MAIN EXECUTION

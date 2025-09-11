@@ -6,8 +6,14 @@ from log.colorFormatter import ColorFormatter
 
 def setup_logging():
     """Setup logging configuration"""
-    print(f"====> START - setup_logging called <====")
-    config_path='config/logging_config.json'
+    print(f"====> START - setup_logging() called <====")
+
+    """Setup logging based on environment"""
+    env = os.getenv('ENVIRONMENT', 'prod')
+    print(f"*** Environment: {env}")
+    config_file = f'logging_config_{env}.json'
+    config_path=f'config/{config_file}'
+    print(f"*** Using {config_path} for logging configuration")
     default_level=logging.DEBUG
     if os.path.exists(config_path):
         with open(config_path, 'r') as f:

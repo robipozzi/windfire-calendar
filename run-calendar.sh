@@ -1,9 +1,11 @@
-source ./setVars.sh
+source ./setEnv.sh
 
 # ***** Run Python program
 run()
 {
-    python3 calendarMgr.py
+    printSelectEnvironment
+    echo ${cyn}Running calendar manager in environment : $ENVIRONMENT${end} ${grn}$
+    ENVIRONMENT=$ENVIRONMENT python3 calendarMgr.py
 }
 
 # ***** MAIN EXECUTION

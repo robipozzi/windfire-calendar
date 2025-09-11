@@ -33,28 +33,28 @@ def authenticate():
         # created automatically when the authorization flow completes for the first time.
         if os.path.exists("token.json"):
             creds = Credentials.from_authorized_user_file("token.json", SCOPES)
-            logger.debug("Credentials got from token.json")
+            logger.info("Credentials got from token.json")
         # If there are no (valid) credentials available, let the user log in.
         if not creds or not creds.valid:
-            logger.debug("Credentials not found, logging in ...")
+            logger.info("Credentials not found, logging in ...")
             if creds and creds.expired and creds.refresh_token:
-                logger.debug("Credentials expired, refreshing ...")
+                logger.info("Credentials expired, refreshing ...")
                 creds.refresh(Request())
             else:
-                logger.debug("Authenticating using settings from credentials.json ...")
+                logger.info("Authenticating using settings from credentials.json ...")
                 flow = InstalledAppFlow.from_client_secrets_file(
                     "credentials.json", SCOPES
                 )
                 creds = flow.run_local_server(port=0)
             # Save the credentials for the next run
             with open("token.json", "w") as token:
-                logger.debug("Authenticating using credentials.json and saving credentials to token.json ...")
+                logger.info("Authenticating using credentials.json and saving credentials to token.json ...")
                 token.write(creds.to_json())
-                logger.debug("Credentials saved to token.json")
+                logger.info("Credentials saved to token.json")
             
         credentials = creds
     except HttpError:
-       logger.debug(Fore.RED + "HTTP Error")
+       logger.error("HTTP Error")
 
 ######################################
 ##### Calendar inquiry functions #####
@@ -79,11 +79,11 @@ def countCalendarEventsYear(event_title, year):
   
   # if year is current year, the end date is current day (i.e.: today)
   if(is_current_year):
-    logger.debug("Year is current year: the end date will be set to current day (i.e.: today)")
+    logger.info("Year is current year: the end date will be set to current day (i.e.: today)")
     end_date = date.today()
   # if year is not current year, the end date is 31.12.yyyy
   else:
-    logger.debug("Year is not current year: the end date will be set to 31.12.yyyy")
+    logger.info("Year is not current year: the end date will be set to 31.12.yyyy")
     end_date = date(year, 12, 31)
 
   logger.debug(f"****** start_date: {start_date}")
@@ -127,7 +127,7 @@ def countCalendarEvents(event_title, start_date, end_date):
     # Convert start_date and end_date to datetime objects ISO 8601 format
     start_time = dateMgr.getDateTimeIsoFormat(dateMgr.formatDate(start_date, "YYYY-MM-DD"))
     end_time = dateMgr.getDateTimeIsoFormat(dateMgr.formatDateTimeEndOfDay(end_date))
-    logger.debug(f"Getting '{event_title}' events from {start_time} to {end_time}")
+    logger.info(f"Getting '{event_title}' events from {start_time} to {end_time}")
 
     events_result = service.events().list(
         calendarId='primary',
@@ -142,7 +142,7 @@ def countCalendarEvents(event_title, start_date, end_date):
     return len(events)
   
   except HttpError as error:
-    logger.debug(Fore.RED + f"An error occurred: {error}")
+    logger.error(f"An error occurred: {error}")
 
 ##### List 10 upcoming calendar events
 """
@@ -163,7 +163,7 @@ def getUpcomingEvents():
 
     # Call the Calendar API
     now = dateMgr.getDateTimeIsoFormat(dateMgr.getTodayDateTime())
-    logger.debug("Getting the upcoming 10 events")
+    logger.info("Getting the upcoming 10 events")
     events_result = (service.events().list(
             calendarId="primary",
             timeMin=now,
@@ -174,11 +174,11 @@ def getUpcomingEvents():
     events = events_result.get("items", [])
 
     if not events:
-      logger.debug("No upcoming events found.")
+      logger.info("No upcoming events found.")
       return
     return events
 
   except HttpError as error:
-    logger.debug(Fore.RED + f"An error occurred: {error}")
+    logger.error(f"An error occurred: {error}")
 
 authenticate()
