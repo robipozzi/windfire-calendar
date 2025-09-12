@@ -1,4 +1,4 @@
-source ./setVars.sh
+source ./setEnv.sh
 
 # ***** Create Python Virtual environment
 run()
