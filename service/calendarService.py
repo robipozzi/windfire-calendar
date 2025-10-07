@@ -36,7 +36,7 @@ def authenticate():
             creds = Credentials.from_authorized_user_file("token.json", SCOPES)
         # If there are no (valid) credentials available, let the user log in.
         if not creds or not creds.valid:
-            logger.warning("Valid credentials not found, logging in ...")
+            logger.warning("No valid credentials were found, logging in ...")
             if creds and creds.expired and creds.refresh_token:
                 logger.warning("Credentials expired, refreshing ...")
                 try:
