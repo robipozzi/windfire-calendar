@@ -32,11 +32,11 @@ def authenticate():
         # The file token.json stores the user's access and refresh tokens, and is
         # created automatically when the authorization flow completes for the first time.
         if os.path.exists("token.json"):
+            logger.info("Getting credentials from token.json")
             creds = Credentials.from_authorized_user_file("token.json", SCOPES)
-            logger.info("Credentials got from token.json")
         # If there are no (valid) credentials available, let the user log in.
         if not creds or not creds.valid:
-            logger.warning("Credentials not found, logging in ...")
+            logger.warning("Valid credentials not found, logging in ...")
             if creds and creds.expired and creds.refresh_token:
                 logger.warning("Credentials expired, refreshing ...")
                 try:
