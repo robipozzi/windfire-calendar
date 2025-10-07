@@ -36,10 +36,17 @@ def authenticate():
             logger.info("Credentials got from token.json")
         # If there are no (valid) credentials available, let the user log in.
         if not creds or not creds.valid:
-            logger.info("Credentials not found, logging in ...")
+            logger.warning("Credentials not found, logging in ...")
             if creds and creds.expired and creds.refresh_token:
-                logger.info("Credentials expired, refreshing ...")
-                creds.refresh(Request())
+                logger.warning("Credentials expired, refreshing ...")
+                try:
+                    creds.refresh(Request())
+                except Exception as e:
+                    logger.error(f"Failed to refresh credentials: {e}. Re-authenticating ...")
+                    flow = InstalledAppFlow.from_client_secrets_file(
+                        "credentials.json", SCOPES
+                    )
+                    creds = flow.run_local_server(port=0)
             else:
                 logger.info("Authenticating using settings from credentials.json ...")
                 flow = InstalledAppFlow.from_client_secrets_file(
