@@ -32,11 +32,11 @@ def authenticate():
         # The file token.json stores the user's access and refresh tokens, and is
         # created automatically when the authorization flow completes for the first time.
         if os.path.exists("token.json"):
-            logger.info("Getting credentials from token.json")
+            logger.info("Getting credentials for Google from token.json")
             creds = Credentials.from_authorized_user_file("token.json", SCOPES)
         # If there are no (valid) credentials available, let the user log in.
         if not creds or not creds.valid:
-            logger.warning("No valid credentials were found, logging in ...")
+            logger.warning("No valid Google credentials were found, logging in ...")
             if creds and creds.expired and creds.refresh_token:
                 logger.warning("Credentials expired, refreshing ...")
                 try:
@@ -48,14 +48,14 @@ def authenticate():
                     )
                     creds = flow.run_local_server(port=0)
             else:
-                logger.info("Authenticating using settings from credentials.json ...")
+                logger.info("Authenticating to Google using settings from credentials.json ...")
                 flow = InstalledAppFlow.from_client_secrets_file(
                     "credentials.json", SCOPES
                 )
                 creds = flow.run_local_server(port=0)
             # Save the credentials for the next run
             with open("token.json", "w") as token:
-                logger.info("Authenticating using credentials.json and saving credentials to token.json ...")
+                logger.info("Authenticating to Google using credentials.json and saving credentials to token.json ...")
                 token.write(creds.to_json())
                 logger.info("Credentials saved to token.json")
             

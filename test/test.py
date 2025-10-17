@@ -4,15 +4,18 @@ import json
 from colorama import Fore, Style, init
 from typing import Optional
 from datetime import date
+import os
 
 token = None
 colorama_init = init(autoreset=True)
 
 def authenticate():
     print(Style.BRIGHT + Fore.BLUE + "Authenticating to obtain access token...")
-    post_url = "http://localhost:8000/auth/token"
+    post_url = "http://localhost:8000/auth"
     post_headers = ["-H", "Content-Type: application/json"]
-    post_data = ["-d", '{"username": "admin", "password": "secure_password_123"}']
+    username = os.getenv("USERNAME")
+    password = os.getenv("PASSWORD")
+    post_data = ["-d", json.dumps({"username": username, "password": password})]
 
     post_response = subprocess.run(
         ["curl", "-X", "POST", post_url] + post_headers + post_data,
@@ -26,7 +29,8 @@ def authenticate():
         print("POST Status Code:", post_response.returncode)
         print("POST Response Body:", post_response.stdout)
         print("Access Token:", access_token)
-        print(Style.NORMAL + Fore.GREEN + "Authentication successful")
+        if not access_token is None:
+            print(Style.NORMAL + Fore.GREEN + "Authentication successful")
     except Exception:
         access_token = None
         print(Style.BRIGHT + Fore.LIGHTRED_EX + "Authentication failed")

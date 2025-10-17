@@ -1,8 +1,13 @@
 from colorama import Fore, Style, init
 from handler import actionHandler
+from log import loggingFactory
+import os
 
 # Initialize colorama
 init(autoreset=True)
+
+# Initialize logger at the top so it's available everywhere
+logger = loggingFactory.get_logger('calendar_api')
 
 #############################################
 ##### Menu options management functions #####
@@ -23,6 +28,9 @@ def getChoice():
 ##### Main program function #####
 #################################
 def main():
+  logger.info("Starting calendar manager application")
+  logger.debug(f"### Current Environment ###")
+  logger.debug(f"ENVIRONMENT: {os.getenv('ENVIRONMENT', 'prod')}")
   ### Menu Options - START
   while True:
         printMenu()

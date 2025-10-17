@@ -6,14 +6,13 @@ from log.colorFormatter import ColorFormatter
 
 def setup_logging():
     """Setup logging configuration"""
-    print(f"====> START - setup_logging() called <====")
-
+    #print(f"====> START - setup_logging() called <====")
     """Setup logging based on environment"""
     env = os.getenv('ENVIRONMENT', 'prod')
-    print(f"*** Environment: {env}")
+    #print(f"*** Environment: {env}")
     config_file = f'logging_config_{env}.json'
     config_path=f'config/{config_file}'
-    print(f"*** Using {config_path} for logging configuration")
+    #print(f"*** Using {config_path} for logging configuration")
     default_level=logging.DEBUG
     if os.path.exists(config_path):
         with open(config_path, 'r') as f:
@@ -21,7 +20,7 @@ def setup_logging():
         logging.config.dictConfig(config)
     else:
         logging.basicConfig(level=default_level)
-        print(f"Warning: {config_path} not found, using basic config")
+        #print(f"Warning: {config_path} not found, using basic config")
     
     # Replace the formatter for the console handler
     console_handler = logging.getLogger('calendar_handler').handlers[0]
@@ -33,14 +32,14 @@ def setup_logging():
     console_handler = logging.getLogger('date_manager').handlers[0]
     console_handler.setFormatter(ColorFormatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s"))
     
-    print("*** Logging is configured.")
-    print(f"====> END - setup_logging called <====")
+    #print("*** Logging is configured.")
+    #print(f"====> END - setup_logging called <====")
     return logging
 
 def get_logger(logger_name):
-    print("====> START - get_logger called <====")
+    #print("====> START - get_logger called <====")
     setup_logging()
-    print(f"*** Logger name: {logger_name}")
+    #print(f"*** Logger name: {logger_name}")
     logger = logging.getLogger(logger_name)
-    print("====> END - get_logger called <====")
+    #print("====> END - get_logger called <====")
     return logger

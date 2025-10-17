@@ -1,5 +1,7 @@
-from fastapi import FastAPI, HTTPException, Depends, status
+from fastapi import FastAPI, HTTPException, Depends, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+import uvicorn
+import httpx
 from pydantic import BaseModel, Field
 from datetime import date
 from typing import Optional, List
@@ -8,6 +10,9 @@ import os
 import jwt
 from jwt.exceptions import InvalidTokenError
 from log import loggingFactory
+from contextlib import asynccontextmanager
+import requests
+from typing import Optional, Dict, Any
 
 SERVICE_NAME = "Windfire Calendar Service API"
 # Initialize FastAPI app
@@ -126,23 +131,130 @@ def create_access_token(data: dict):
     return encoded_jwt
 
 # Authentication endpoint
-@app.post("/auth/token", response_model=TokenResponse)
-async def login(auth_data: AuthToken):
-    """
-    Authenticate and receive JWT token
-    """
-    logger.debug(f"====> START - /auth/token endpoint called <====")
-    user = authenticate_user(auth_data.username, auth_data.password)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+# @app.post("/auth", response_model=TokenResponse)
+# async def login(auth_data: AuthToken):
+#     """
+#     Authenticate and receive JWT token
+#     """
+#     logger.debug(f"====> START - /auth endpoint called <====")
+#     user = authenticate_user(auth_data.username, auth_data.password)
+#     if not user:
+#         raise HTTPException(
+#             status_code=status.HTTP_401_UNAUTHORIZED,
+#             detail="Incorrect username or password",
+#             headers={"WWW-Authenticate": "Bearer"},
+#         )
+#     
+#     access_token = create_access_token(data={"sub": user["username"]})
+#     logger.debug(f"====> END - /auth/token endpoint called <====")
+#     return {"access_token": access_token, "token_type": "bearer"}
+
+################### KEYCLOAK INTEGRATION PLACEHOLDER ###################
+# This is a placeholder for Keycloak integration. In a production
+# environment, you would replace the mock authentication and JWT
+# handling with actual Keycloak token validation and user management.
+########################################################################
+class KeycloakAuthRequest(BaseModel):
+    username: str
+    password: str
+
+class KeycloakTokenResponse(BaseModel):
+    access_token: str
+    refresh_token: Optional[str] = None
+    expires_in: Optional[int] = None
+    token_type: Optional[str] = None
+
+def introspect_token(self, token: str) -> Dict[str, Any]:
+        """
+        Introspect a token to check its validity and get claims
+        
+        Args:
+            token: Token to introspect
+            
+        Returns:
+            Dict with token information and validity
+            
+        Raises:
+            KeycloakAuthError: If introspection fails
+        """
+        logger.info("Introspecting token")
+        
+        payload = {
+            'client_id': self.config.client_id,
+            'token': token
+        }
+        
+        if self.config.client_secret:
+            payload['client_secret'] = self.config.client_secret
+        
+        try:
+            response = self.session.post(
+                self.config.introspect_endpoint,
+                data=payload,
+                timeout=10
+            )
+            response.raise_for_status()
+            
+            introspection = response.json()
+            is_active = introspection.get('active', False)
+            logger.info(f"Token introspection - Active: {is_active}")
+            return introspection
+            
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Token introspection failed: {str(e)}")
+            #raise KeycloakAuthError(f"Token introspection failed: {str(e)}")
     
-    access_token = create_access_token(data={"sub": user["username"]})
-    logger.debug(f"====> END - /auth/token endpoint called <====")
-    return {"access_token": access_token, "token_type": "bearer"}
+async def verify_keycloak_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    try:
+        token_info = introspect_token(credentials.credentials)
+        if not token_info.get('active'):
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
+        return token_info
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
+
+
+@app.post("/auth", response_model=KeycloakTokenResponse)
+async def keycloak_login(auth_data: KeycloakAuthRequest, request: Request):
+    """
+    Authenticate user against Keycloak and return access token
+    """
+    logger.debug(f"====> START - /auth endpoint called <====")
+    keycloak_url = os.getenv("KEYCLOAK_URL")
+    realm = os.getenv("KEYCLOAK_REALM")
+    client_id = os.getenv("KEYCLOAK_CLIENT_ID")
+    client_secret = os.getenv("KEYCLOAK_CLIENT_SECRET", None)
+    logger.debug(f"keycloak_url: {keycloak_url}, realm: {realm}, client_id: {client_id}")
+
+    token_url = f"{keycloak_url}/realms/{realm}/protocol/openid-connect/token"
+    logger.debug(f"Keycloak token URL: {token_url}")
+    data = {
+        "grant_type": "password",
+        "client_id": client_id,
+        "username": auth_data.username,
+        "password": auth_data.password,
+    }
+    if client_secret:
+        data["client_secret"] = client_secret
+
+    #logger.debug(f"Authentication data: {data}")
+
+    async with httpx.AsyncClient() as client:
+        response = await client.post(token_url, data=data)
+        if response.status_code != 200:
+            logger.error(f"Keycloak authentication failed: {response.text}")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Keycloak authentication failed"
+            )
+        token_data = response.json()
+        return KeycloakTokenResponse(
+            access_token=token_data.get("access_token"),
+            refresh_token=token_data.get("refresh_token"),
+            expires_in=token_data.get("expires_in"),
+            token_type=token_data.get("token_type")
+        )
+################### KEYCLOAK INTEGRATION PLACEHOLDER ###################
 
 # Health check endpoint
 @app.get("/health")
@@ -266,18 +378,25 @@ async def get_upcoming_events(current_user: dict = Depends(verify_token)):
         raise HTTPException(status_code=500, detail=f"Failed to get upcoming events: {str(e)}")
 
 # Initialize the calendar service authentication on startup
-@app.on_event("startup")
-async def startup_event():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     """
-    Initialize Google Calendar authentication on startup
+    Lifespan event handler to initialize Google Calendar authentication on startup
     """
     try:
         # The calendarService module automatically authenticates on import
         logger.info("Google Calendar service initialized successfully")
     except Exception as e:
         logger.error(f"Failed to initialize Google Calendar service: {str(e)}")
+    yield
+
+app = FastAPI(
+    title="Windfire Calendar Service API",
+    description="A secured REST API for Google Calendar operations",
+    version="1.0.0",
+    lifespan=lifespan
+)
 
 if __name__ == "__main__":
-    import uvicorn
     logger.info("Starting FastAPI server...")
     uvicorn.run(app, host="0.0.0.0", port=8000)
