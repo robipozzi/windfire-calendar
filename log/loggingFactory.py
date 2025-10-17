@@ -29,6 +29,8 @@ def setup_logging():
     console_handler.setFormatter(ColorFormatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s"))
     console_handler = logging.getLogger('calendar_api').handlers[0]
     console_handler.setFormatter(ColorFormatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s"))
+    console_handler = logging.getLogger('keycloak').handlers[0]
+    console_handler.setFormatter(ColorFormatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s"))
     console_handler = logging.getLogger('date_manager').handlers[0]
     console_handler.setFormatter(ColorFormatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s"))
     

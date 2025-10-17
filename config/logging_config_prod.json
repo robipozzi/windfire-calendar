@@ -43,6 +43,11 @@
             "handlers": ["rotating_file"],
             "propagate": false
         },
+        "keycloak": {
+            "level": "INFO",
+            "handlers": ["rotating_file"],
+            "propagate": false
+        },
         "date_manager": {
             "level": "INFO",
             "handlers": ["rotating_file"],

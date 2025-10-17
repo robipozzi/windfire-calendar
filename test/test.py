@@ -1,6 +1,5 @@
 import subprocess
 import requests
-import json
 from colorama import Fore, Style, init
 from typing import Optional
 from datetime import date
@@ -12,29 +11,25 @@ colorama_init = init(autoreset=True)
 def authenticate():
     print(Style.BRIGHT + Fore.BLUE + "Authenticating to obtain access token...")
     post_url = "http://localhost:8000/auth"
-    post_headers = ["-H", "Content-Type: application/json"]
+    post_headers = {"Content-Type": "application/json"}
     username = os.getenv("USERNAME")
     password = os.getenv("PASSWORD")
-    post_data = ["-d", json.dumps({"username": username, "password": password})]
-
-    post_response = subprocess.run(
-        ["curl", "-X", "POST", post_url] + post_headers + post_data,
-        capture_output=True,
-        text=True
-    )
-
     try:
-        response_json = json.loads(post_response.stdout)
-        access_token = response_json.get("access_token")
-        print("POST Status Code:", post_response.returncode)
-        print("POST Response Body:", post_response.stdout)
-        print("Access Token:", access_token)
+        response = requests.post(post_url,
+                     json={'username': username, 'password': password},
+                     headers=post_headers)
+        access_token = response.json()['access_token']
+        print(f"Return Code: {response.status_code}\n")
+        print(f"Response Body: {response.__dict__}\n")
+        print(f"Access Token: {access_token}\n")
         if not access_token is None:
             print(Style.NORMAL + Fore.GREEN + "Authentication successful")
     except Exception:
         access_token = None
         print(Style.BRIGHT + Fore.LIGHTRED_EX + "Authentication failed")
-
+        print(f"Response: {response.__dict__} \n")
+        print("POST Status Code:", response.status_code)
+        
     return access_token
 
 def test_count_events_by_year() -> Optional[dict]:

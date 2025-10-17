@@ -35,6 +35,11 @@
             "handlers": ["console"],
             "propagate": false
         },
+        "keycloak": {
+            "level": "DEBUG",
+            "handlers": ["console"],
+            "propagate": false
+        },
         "date_manager": {
             "level": "DEBUG",
             "handlers": ["console"],
