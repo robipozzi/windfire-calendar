@@ -19,8 +19,8 @@ KEYCLOAK_CLIENT_ID="windfire-calendar"
 KEYCLOAK_CLIENT_SECRET=
 
 ## REMOVE BEFORE DEPLOYMENT!!!!!!
-USERNAME=
-PASSWORD=
+USERNAME=windfire
+PASSWORD=Pl@t0@Ath3ns
 ###### Variable section - END
 
 ###### Function section - START

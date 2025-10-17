@@ -9,17 +9,35 @@ from service import calendarService
 import os
 import jwt
 from jwt.exceptions import InvalidTokenError
+#from jwt.algorithms import RSAAlgorithm
+from jwt.algorithms import Algorithm
 from log import loggingFactory
 from contextlib import asynccontextmanager
 import requests
 from typing import Optional, Dict, Any
+import json
 
 SERVICE_NAME = "Windfire Calendar Service API"
+# Startup is now managed by the lifespan context manager defined below.
+@asynccontextmanager
+async def lifespan(app):
+    """
+    Lifespan event handler to initialize Google Calendar authentication on startup
+    """
+    try:
+        # The calendarService module automatically authenticates on import
+        logger.info("Google Calendar service initialized successfully")
+    except Exception as e:
+        logger.error(f"Failed to initialize Google Calendar service: {str(e)}")
+    yield
+    # Add shutdown/cleanup logic here if needed
+
 # Initialize FastAPI app
 app = FastAPI(
     title=SERVICE_NAME,
     description="A secured REST API for Google Calendar operations",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # Initialize logger at the top so it's available everywhere
@@ -73,7 +91,7 @@ USERS_DB = {
     }
 }
 
-def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
+def verify_token_OLD(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """
     Verify JWT token and return user info
     """
@@ -164,7 +182,7 @@ class KeycloakTokenResponse(BaseModel):
     expires_in: Optional[int] = None
     token_type: Optional[str] = None
 
-def introspect_token(self, token: str) -> Dict[str, Any]:
+def introspect_token(token: str) -> Dict[str, Any]:
         """
         Introspect a token to check its validity and get claims
         
@@ -175,24 +193,52 @@ def introspect_token(self, token: str) -> Dict[str, Any]:
             Dict with token information and validity
             
         Raises:
-            KeycloakAuthError: If introspection fails
+            Exception: If introspection fails or Keycloak is misconfigured
         """
         logger.info("Introspecting token")
+        client_id = os.getenv("KEYCLOAK_CLIENT_ID")
+        client_secret = os.getenv("KEYCLOAK_CLIENT_SECRET", None)
+        keycloak_url = os.getenv("KEYCLOAK_URL")
+        realm = os.getenv("KEYCLOAK_REALM")
+        jwks_endpoint = f"{keycloak_url}/realms/{realm}/protocol/openid-connect/certs"
         
+
+        if not keycloak_url or not realm:
+            logger.error("Keycloak URL or realm not configured")
+            raise Exception("Keycloak configuration missing (KEYCLOAK_URL or KEYCLOAK_REALM)")
+
+        # Build payload; use client authentication via HTTP Basic when a client secret is provided.
         payload = {
-            'client_id': self.config.client_id,
             'token': token
         }
-        
-        if self.config.client_secret:
-            payload['client_secret'] = self.config.client_secret
-        
+        headers = {'Content-Type': 'application/x-www-form-urlencoded'}
+        auth = None
+
+        if client_secret:
+            # Use HTTP Basic auth per Keycloak best practices for token introspection
+            auth = (client_id, client_secret)
+        else:
+            # For public clients (no secret), include client_id in the form data
+            if client_id:
+                payload['client_id'] = client_id
+
         try:
-            response = self.session.post(
-                self.config.introspect_endpoint,
+            introspect_endpoint = f"{keycloak_url}/realms/{realm}/protocol/openid-connect/token/introspect"
+        
+            session = requests.Session()
+            response = session.post(
+                introspect_endpoint,
                 data=payload,
+                headers=headers,
+                auth=auth,
                 timeout=10
             )
+
+            # Explicitly handle forbidden/unauthorized responses for clearer logging
+            if response.status_code in (401, 403):
+                logger.error(f"Token introspection returned {response.status_code}: {response.text}")
+                raise Exception(f"Token introspection failed: {response.status_code} {response.text}")
+
             response.raise_for_status()
             
             introspection = response.json()
@@ -202,17 +248,115 @@ def introspect_token(self, token: str) -> Dict[str, Any]:
             
         except requests.exceptions.RequestException as e:
             logger.error(f"Token introspection failed: {str(e)}")
-            #raise KeycloakAuthError(f"Token introspection failed: {str(e)}")
+            raise
     
-async def verify_keycloak_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
+async def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     try:
+        logger.debug(f"====> START - verify_token called <====")
+        
         token_info = introspect_token(credentials.credentials)
         if not token_info.get('active'):
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
         return token_info
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
-
+    
+# =======================================
+def verify_token_locally(token: str = Depends(security)) -> Dict[str, Any]:
+        """
+        Verify token locally using public keys (no introspection endpoint needed)
+        This is the most reliable method as it doesn't require special client permissions
+        
+        Args:
+            token: JWT token to verify
+            
+        Returns:
+            Dict with decoded token claims
+            
+        Raises:
+            KeycloakAuthError: If verification fails
+        """
+        logger.info("Verifying token locally using public keys")
+        
+        try:
+            # Get unverified header to find kid
+            unverified_header = jwt.get_unverified_header(token)
+            kid = unverified_header.get('kid')
+            
+            if not kid:
+                raise Exception("Token has no 'kid' in header")
+            
+            # Get public keys from Keycloak
+            jwks = get_public_keys()
+            
+            # Find the matching public key
+            public_key_data = None
+            for key in jwks.get('keys', []):
+                if key.get('kid') == kid:
+                    public_key_data = key
+                    break
+            
+            if not public_key_data:
+                raise Exception(f"Public key with kid '{kid}' not found")
+            
+            # Convert JWK to PEM format
+            #public_key = RSAAlgorithm.from_jwk(json.dumps(public_key_data))
+            public_key = Algorithm.from_jwk(json.dumps(public_key_data))
+            
+            # Decode and verify token
+            decoded_token = jwt.decode(
+                token,
+                public_key,
+                algorithms=['RS256'],
+                options={"verify_signature": True}
+            )
+            
+            logger.info(f"Token verified successfully for user: {decoded_token.get('preferred_username')}")
+            return decoded_token
+            
+        except jwt.ExpiredSignatureError:
+            logger.error("Token has expired")
+            raise Exception("Token has expired")
+        except jwt.InvalidTokenError as e:
+            logger.error(f"Token verification failed: {str(e)}")
+            raise Exception(f"Invalid token: {str(e)}")
+        except Exception as e:
+            logger.error(f"Token verification error: {str(e)}")
+            raise Exception(f"Token verification error: {str(e)}")
+    
+def get_public_keys(self) -> Dict[str, Any]:
+    """
+    Get public keys for token verification (JWKS)
+        
+    Returns:
+        Dict with public keys
+            
+    Raises:
+        KeycloakAuthError: If retrieval fails
+    """
+    logger.info("Fetching public keys (JWKS)")
+    client_id = os.getenv("KEYCLOAK_CLIENT_ID")
+    client_secret = os.getenv("KEYCLOAK_CLIENT_SECRET", None)
+    keycloak_url = os.getenv("KEYCLOAK_URL")
+    realm = os.getenv("KEYCLOAK_REALM")
+    jwks_endpoint = f"{keycloak_url}/realms/{realm}/protocol/openid-connect/certs"
+        
+    try:
+        session = requests.Session()
+        response = session.get(
+            jwks_endpoint,
+            timeout=10
+        )
+        response.raise_for_status()
+            
+        keys = response.json()
+        logger.info(f"Retrieved {len(keys.get('keys', []))} public keys")
+        return keys
+            
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Failed to fetch public keys: {str(e)}")
+        raise Exception(f"Failed to fetch public keys: {str(e)}")
+# =======================================
 
 @app.post("/auth", response_model=KeycloakTokenResponse)
 async def keycloak_login(auth_data: KeycloakAuthRequest, request: Request):
@@ -269,7 +413,7 @@ async def health_check():
 @app.post("/calendar/events/count/year", response_model=EventCountResponse)
 async def count_events_by_year(
     request: EventCountRequest,
-    current_user: dict = Depends(verify_token)
+    current_user: dict = Depends(verify_token_locally)
 ):
     """
     Count calendar events for a specific year
@@ -366,36 +510,26 @@ async def get_upcoming_events(current_user: dict = Depends(verify_token)):
                 summary=event.get('summary', 'No Title'),
                 start=event.get('start', {}),
                 end=event.get('end', {}),
-                description=event.get('description', None)
+                description=event.get('description')
             )
             formatted_events.append(formatted_event)
-        logger.debug("====> END - /calendar/events/upcoming endpoint called <====")
-        return UpcomingEventsResponse(
-            events=formatted_events,
-            count=len(formatted_events)
-        )
+        
+        return UpcomingEventsResponse(events=formatted_events, count=len(formatted_events))
     except Exception as e:
+        logger.error(f"Failed to get upcoming events: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to get upcoming events: {str(e)}")
 
 # Initialize the calendar service authentication on startup
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """
-    Lifespan event handler to initialize Google Calendar authentication on startup
-    """
-    try:
-        # The calendarService module automatically authenticates on import
-        logger.info("Google Calendar service initialized successfully")
-    except Exception as e:
-        logger.error(f"Failed to initialize Google Calendar service: {str(e)}")
-    yield
-
-app = FastAPI(
-    title="Windfire Calendar Service API",
-    description="A secured REST API for Google Calendar operations",
-    version="1.0.0",
-    lifespan=lifespan
-)
+# @app.on_event("startup")
+# async def startup_event():
+#     """
+#     Startup event handler to initialize Google Calendar authentication on startup
+#     """
+#     try:
+#         # The calendarService module automatically authenticates on import
+#         logger.info("Google Calendar service initialized successfully")
+#     except Exception as e:
+#         logger.error(f"Failed to initialize Google Calendar service: {str(e)}")
 
 if __name__ == "__main__":
     logger.info("Starting FastAPI server...")

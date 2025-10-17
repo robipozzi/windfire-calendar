@@ -43,7 +43,7 @@ def test_count_events_by_year() -> Optional[dict]:
     """
     if token:
         print(Style.NORMAL + Fore.GREEN + "Authentication token is available, proceeding with POST request...")
-        url = "http://localhost:8000//calendar/events/count/year"
+        url = "http://localhost:8000/calendar/events/count/year"
         headers = {
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json"
