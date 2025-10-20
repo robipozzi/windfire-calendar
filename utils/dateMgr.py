@@ -1,6 +1,6 @@
 from datetime import date, datetime, time
 import dateutil.parser
-from colorama import Fore, Style, init
+from colorama import Fore, init
 from log import loggingFactory
 
 # Initialize colorama
