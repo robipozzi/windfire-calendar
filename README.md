@@ -1,6 +1,8 @@
 # Windfire Calendar
 This project manages Google calendar interactions using Pythong programs that wrap Google APIs.
 
+The project provides a modular codebase that implements the core functionality and utilities needed to run, test, and extend the application. It is organized for clarity, maintainability, and easy integration into larger systems.
+
 ## Activate Python Virtual Environment
 The project makes use of Python Virtual Environment, which is a fully self-contained development environment, complete with its own Python interpreter, libraries, and required dependencies. This creates a separate “mini” Python setup that’s completely isolated from the system-wide Python installation and any other virtual environments you may have.
 
@@ -26,5 +28,7 @@ By selecting the appropriate menu options, the user will be able to
 * get the count of calendar events between two specific dates
 * get the count of the next 10 events in calendar
 
-## Run the web service
-[TODO]
+## Run as FastAPI web service
+To run a web service just launch **[run-api-calendar.sh](run-api-calendar.sh)** script.
+
+The module builds a secured FastAPI service that exposes Google Calendar operations (counting events and listing upcoming events) and a Keycloak-backed authentication endpoint. It wires a lifespan context manager for startup logic, sets up HTTP Bearer security, declares Pydantic request/response models, and implements REST endpoints that call into a calendarService module.
