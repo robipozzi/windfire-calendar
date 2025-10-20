@@ -17,10 +17,6 @@ KEYCLOAK_URL="http://raspberry01:8080"
 KEYCLOAK_REALM="windfire"
 KEYCLOAK_CLIENT_ID="windfire-calendar"
 KEYCLOAK_CLIENT_SECRET=
-
-## REMOVE BEFORE DEPLOYMENT!!!!!!
-USERNAME=windfire
-PASSWORD=Pl@t0@Ath3ns
 ###### Variable section - END
 
 ###### Function section - START

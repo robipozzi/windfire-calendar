@@ -6,7 +6,7 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from utils import dateMgr
 from datetime import date
-from colorama import Fore, Style, init
+from colorama import init
 from log import loggingFactory
 
 # If modifying these scopes, delete the file token.json.

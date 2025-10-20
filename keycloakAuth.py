@@ -1,14 +1,11 @@
 import requests
-from typing import Optional, Dict, Any
+from typing import Dict, Any
 from datetime import datetime, timedelta
 import os
 from functools import lru_cache
 from log import loggingFactory
 import jwt
 import json
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.backends import default_backend
-import base64
 
 # Initialize logger at the top so it's available everywhere
 logger = loggingFactory.get_logger('keycloak')
@@ -31,9 +28,7 @@ class KeycloakConfig:
         self.server_url = server_url or os.getenv('KEYCLOAK_URL')
         self.realm = realm or os.getenv('KEYCLOAK_REALM')
         self.client_id = client_id or os.getenv('KEYCLOAK_CLIENT_ID')
-        self.client_secret = client_secret or os.getenv('KEYCLOAK_CLIENT_SECRET', '')
-        self.username = username or os.getenv('KEYCLOAK_USERNAME', '')
-        self.password = password or os.getenv('KEYCLOAK_PASSWORD', '')
+        self.client_secret = client_secret or os.getenv('KEYCLOAK_CLIENT_SECRET')
         
         # Normalize server URL
         self.server_url = self.server_url.rstrip('/')
@@ -336,12 +331,23 @@ class KeycloakAuth:
                 # Fallback: manually convert JWK to RSA public key
                 public_key = self._jwk_to_public_key(public_key_data)
             
+            # **** FOR DEBUGGING PURPOSES ****
+            # Decode without verification to see what's in the token
+            unverified = jwt.decode(token, options={"verify_signature": False})
+            logger.debug(f"Token claims: {unverified}")
+            logger.debug(f"Audience claim: {unverified.get('aud')}")
+            logger.debug(f"Client ID: {self.config.client_id}")
+            # **** FOR DEBUGGING PURPOSES ****
+
             # Decode and verify token
             decoded_token = jwt.decode(
                 token,
                 public_key,
                 algorithms=['RS256'],
-                options={"verify_signature": True}
+                options={
+                    "verify_signature": True,
+                    "verify_aud": False  # Disable audience verification
+                }
             )
             
             logger.info(f"Token verified successfully for user: {decoded_token.get('preferred_username')}")

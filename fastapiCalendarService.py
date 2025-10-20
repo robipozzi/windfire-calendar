@@ -250,18 +250,6 @@ async def get_upcoming_events(current_user: dict = Depends(verify_token)):
         logger.error(f"Failed to get upcoming events: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to get upcoming events: {str(e)}")
 
-# Initialize the calendar service authentication on startup
-# @app.on_event("startup")
-# async def startup_event():
-#     """
-#     Startup event handler to initialize Google Calendar authentication on startup
-#     """
-#     try:
-#         # The calendarService module automatically authenticates on import
-#         logger.info("Google Calendar service initialized successfully")
-#     except Exception as e:
-#         logger.error(f"Failed to initialize Google Calendar service: {str(e)}")
-
 if __name__ == "__main__":
     logger.info("Starting FastAPI server...")
     uvicorn.run(app, host="0.0.0.0", port=8000)

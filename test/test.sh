@@ -22,7 +22,7 @@ getCredentials() {
 # ***** Run Test script for Google Calendar API
 run()
 {
-    #getCredentials
+    getCredentials
     USERNAME=$USERNAME \
     PASSWORD=$PASSWORD \
     python3 test.py
