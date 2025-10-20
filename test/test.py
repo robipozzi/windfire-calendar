@@ -20,8 +20,10 @@ def authenticate():
                      headers=post_headers)
         access_token = response.json()['access_token']
         print(f"Return Code: {response.status_code}\n")
-        print(f"Response Body: {response.__dict__}\n")
-        print(f"Access Token: {access_token}\n")
+        # ****** START - Uncomment for debug purposes in development ONLY ********
+        #print(f"Response Body: {response.__dict__}\n")
+        #print(f"Access Token: {access_token}\n")
+        # ****** START - Uncomment for debug purposes in development ONLY ********
         if not access_token is None:
             print(Style.NORMAL + Fore.GREEN + "Authentication successful")
     except Exception:

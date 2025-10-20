@@ -55,8 +55,15 @@ class KeycloakAuth:
         self.token_expiry = None
         self.session = requests.Session()
         logger.info("KeycloakAuth client initialized")
-        logger.debug(f"KeycloakConfig: {self.config.__dict__}")
-    
+        logger.debug(f"KeycloakConfig: ")
+        logger.debug(f"     server_url: {self.config.server_url}")
+        logger.debug(f"     realm: {self.config.realm}")
+        logger.debug(f"     client_id: {self.config.client_id}")
+        logger.debug(f"     token_endpoint: {self.config.token_endpoint}")
+        logger.debug(f"     userinfo_endpoint: {self.config.userinfo_endpoint}")
+        logger.debug(f"     jwks_endpoint: {self.config.jwks_endpoint}")
+        logger.debug(f"     introspect_endpoint: {self.config.introspect_endpoint}")
+        
     def authenticate_with_password(self, username: str, password: str) -> Dict[str, Any]:
         """
         Authenticate user with username and password (Resource Owner Password Credentials flow)
