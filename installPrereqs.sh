@@ -13,7 +13,7 @@ installPythonModules()
                 PyJWT==2.8.0 \
                 pydantic==2.5.0 \
                 python-dateutil==2.9.0.post0 \
-                cryptography>=41.0.0
+                cryptography==41.0.0
 }
 
 # ***** MAIN EXECUTION

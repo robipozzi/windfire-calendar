@@ -22,11 +22,16 @@ KEYCLOAK_CLIENT_SECRET=
 ###### Function section - START
 printSelectEnvironment()
 {
-	echo ${grn}Select environment : ${end}
-    echo "${grn}1. Development${end}"
-	echo "${grn}2. Test${end}"
-    echo "${grn}3. Production${end}"
-	read ENVIRONMENT_SELECTION
+    ENVIRONMENT_SELECTION=$1
+    if [[ -n "${ENVIRONMENT_SELECTION}" ]]; then
+        echo 
+    else
+        echo ${blu}Select environment : ${end}
+        echo "${blu}1. Development${end}"
+        echo "${blu}2. Test${end}"
+        echo "${blu}3. Production${end}"
+        read ENVIRONMENT_SELECTION
+    fi
 	setEnvironment
 }
 

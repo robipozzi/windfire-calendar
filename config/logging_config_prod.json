@@ -22,7 +22,7 @@
             "class": "logging.handlers.RotatingFileHandler",
             "level": "DEBUG",
             "formatter": "detailed",
-            "filename": "app_rotating.log",
+            "filename": "windfire-calendar.log",
             "maxBytes": 10485760,
             "backupCount": 5
         }
