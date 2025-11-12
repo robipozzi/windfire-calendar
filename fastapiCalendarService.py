@@ -6,9 +6,12 @@ from pydantic import BaseModel, Field
 from datetime import date
 from typing import Optional, List
 from service import calendarService
-from log import loggingFactory
 from contextlib import asynccontextmanager
 from typing import Optional
+
+# Initialize logger at the top so it's available everywhere
+from logger.loggingFactory import logger_factory
+logger = logger_factory.get_logger('calendar_api')
 
 SERVICE_NAME = "Windfire Calendar Service API"
 # Startup is now managed by the lifespan context manager defined below.
@@ -34,9 +37,6 @@ app = FastAPI(
     lifespan=lifespan,
     redirect_slashes=False
 )
-
-# Initialize logger at the top so it's available everywhere
-logger = loggingFactory.get_logger('calendar_api')
 
 # Security
 security = HTTPBearer()

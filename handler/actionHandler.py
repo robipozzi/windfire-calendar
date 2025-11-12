@@ -2,13 +2,13 @@ from datetime import date
 from utils import dateMgr
 from service import calendarService
 from colorama import Fore, Style, init
-from log import loggingFactory
 
 # Initialize colorama
 init(autoreset=True)
 
 # Initialize logger at the top so it's available everywhere
-logger = loggingFactory.get_logger('calendar_handler')
+from logger.loggingFactory import logger_factory
+logger = logger_factory.get_logger('calendar_handler')
 
 def getYearInput():
   logger.debug(f"====> actionHandler.getYearInput() called <====")

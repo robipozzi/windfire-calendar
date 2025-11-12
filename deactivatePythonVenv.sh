@@ -1,4 +1,4 @@
-source ./setEnv.sh
+source ./setenv.sh
 
 # ***** Deactivate Python Virtual environment
 main()

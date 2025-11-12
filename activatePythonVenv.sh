@@ -1,4 +1,4 @@
-source ./setEnv.sh
+source ./setenv.sh
 
 # ***** Activate Python Virtual environment
 main()

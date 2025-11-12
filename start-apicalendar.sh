@@ -1,6 +1,6 @@
-source ./setEnv.sh
+source ./setenv.sh
 
-# ***** Run FastAPI server for Google Calendar API
+# ***** Start FastAPI server for Windfire Calendar API (wraps Google Calendar API)
 main()
 {
     echo ${blu}"################################################################"${end}
@@ -16,7 +16,6 @@ main()
     run $1
 }
 
-# ***** Run FastAPI server for Google Calendar API
 run()
 {
     printSelectEnvironment $1

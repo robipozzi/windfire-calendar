@@ -1,4 +1,4 @@
-source ../setEnv.sh
+source ../setenv.sh
 
 getCredentials() {
     while true; do

@@ -1,4 +1,4 @@
-source ./setEnv.sh
+source ./setenv.sh
 
 # ***** Install Python prerequisites for Google Calendar API
 installPythonModules()

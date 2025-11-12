@@ -3,12 +3,12 @@ from typing import Dict, Any
 from datetime import datetime, timedelta
 import os
 from functools import lru_cache
-from log import loggingFactory
 import jwt
 import json
 
 # Initialize logger at the top so it's available everywhere
-logger = loggingFactory.get_logger('keycloak')
+from logger.loggingFactory import logger_factory
+logger = logger_factory.get_logger('keycloak')
 
 class KeycloakAuthError(Exception):
     """Custom exception for Keycloak authentication errors"""

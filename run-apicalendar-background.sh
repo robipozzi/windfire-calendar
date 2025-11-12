@@ -1,0 +1,1 @@
+./start-apicalendar.sh 3 > windfire-calendar.log 2>&1 &
