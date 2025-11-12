@@ -28,6 +28,11 @@
         }
     },
     "loggers": {
+        "config_reader": {
+            "level": "INFO",
+            "handlers": ["rotating_file"],
+            "propagate": false
+        },
         "calendar_handler": {
             "level": "INFO",
             "handlers": ["rotating_file"],

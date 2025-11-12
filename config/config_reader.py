@@ -1,30 +1,14 @@
-import json
 import os
-from typing import Dict, Any
-from dataclasses import dataclass
+from typing import Any
 from dotenv import load_dotenv
 
 # Initialize logger at the top so it's available everywhere
 from logger.loggingFactory import logger_factory
-logger = logger_factory.get_logger('config-reader')
-
-# Load environment from .env file
-load_dotenv()
+logger = logger_factory.get_logger('config_reader')
 
 class ConfigError(Exception):
     """Custom exception for configuration errors"""
     pass
-
-@dataclass
-class ServiceConfig:
-    """Dataclass representing a service configuration"""
-    realm: str
-    client_id: str
-    client_secret: str
-    
-    def __repr__(self):
-        """Safe representation that doesn't expose client_secret"""
-        return f"ServiceConfig(realm={self.realm}, client_id={self.client_id}, client_secret={'***'})"
 
 class ConfigReader:
     """Read and manage configuration from JSON file"""
@@ -34,165 +18,31 @@ class ConfigReader:
         
         Args:
             config_file: Path to the JSON configuration file
-            
-        Raises:
-            ConfigError: If configuration file is not found or invalid
         """
         self.config_file = config_file
-        self.config: Dict[str, ServiceConfig] = {}
         self._load_config()
     
     def _load_config(self):
         """
-        Load configuration from JSON file
+        Load configuration from .env file
         
         Raises:
             ConfigError: If file doesn't exist or JSON is invalid
         """
-        logger.info(f"Loading configuration from: {self.config_file} ...")
+        logger.info(f"Loading configuration from .env ...")
+        # Load environment from .env file
+        load_dotenv()
+
+        logger.info(f"Configuration loaded successfully.")
+        logger.info(f"  API_HOST: {os.getenv('API_HOST')}")
+        logger.info(f"  API_PORT: {os.getenv('API_PORT')}")
+        logger.info(f"  SSL_KEYFILE: {os.getenv('SSL_KEYFILE')}")
+        logger.info(f"  SSL_CERTFILE: {os.getenv('SSL_CERTFILE')}")
+        logger.info(f"  SSL_CERTFILE: {os.getenv('SSL_CERTFILE')}")
+        logger.info(f"  ENFORCE_HTTPS: {os.getenv('ENFORCE_HTTPS')}")
+        logger.info(f"  ALLOWED_HOSTS: {os.getenv('ALLOWED_HOSTS')}")
+        logger.info(f"  KEYCLOAK_SERVER_URL: {os.getenv('KEYCLOAK_SERVER_URL')}")
         
-        # Check if file exists
-        if not os.path.exists(self.config_file):
-            raise ConfigError(f"Configuration file not found: {self.config_file}")
-        
-        try:
-            with open(self.config_file, 'r') as f:
-                config_data = json.load(f)
-            
-            # Validate and parse configuration
-            self._parse_config(config_data)
-            logger.info(f"Configuration loaded successfully.")
-            logger.info(f"  Services: {list(self.config.keys())}")
-            logger.info(f"  KEYCLOAK_SERVER_URL: {os.getenv('KEYCLOAK_SERVER_URL')}")
-            logger.info(f"  ENFORCE_HTTPS: {os.getenv('ENFORCE_HTTPS')}")
-            logger.info(f"  ALLOWED_HOSTS: {os.getenv('ALLOWED_HOSTS')}")
-            
-        except json.JSONDecodeError as e:
-            raise ConfigError(f"Invalid JSON in configuration file: {str(e)}")
-        except Exception as e:
-            raise ConfigError(f"Failed to load configuration: {str(e)}")
-    
-    def _parse_config(self, config_data: Dict[str, Any]):
-        """
-        Parse configuration data and validate structure
-        
-        Args:
-            config_data: Raw configuration data from JSON
-            
-        Raises:
-            ConfigError: If configuration structure is invalid
-        """
-        if not isinstance(config_data, dict):
-            raise ConfigError("Configuration must be a JSON object")
-        
-        if 'services' not in config_data:
-            raise ConfigError("Configuration must contain 'services' field")
-        
-        services = config_data.get('services', {})
-        
-        if not isinstance(services, dict):
-            raise ConfigError("'services' field must be a JSON object")
-        
-        if not services:
-            logger.warning("No services configured in configuration file")
-            return
-        
-        # Parse each service
-        for service_name, service_config in services.items():
-            try:
-                self._validate_service_config(service_name, service_config)
-                srv_client_id=service_config['client_id']
-                srv_client_secret = os.getenv(f"{srv_client_id}_KEYCLOAK_CLIENT_SECRET")
-                # Create ServiceConfig object
-                self.config[service_name] = ServiceConfig(
-                    realm=service_config['realm'],
-                    client_id=srv_client_id,
-                    client_secret=srv_client_secret
-                )
-                logger.info(f"Loaded service configuration: {service_name}")
-                
-            except ConfigError as e:
-                logger.error(f"Invalid configuration for service '{service_name}': {str(e)}")
-                raise
-    
-    def _validate_service_config(self, service_name: str, service_config: Any):
-        """
-        Validate individual service configuration
-        
-        Args:
-            service_name: Name of the service
-            service_config: Service configuration object
-            
-        Raises:
-            ConfigError: If configuration is invalid
-        """
-        if not isinstance(service_config, dict):
-            raise ConfigError(f"Service '{service_name}' configuration must be a JSON object")
-        
-        required_fields = ['realm', 'client_id']
-        
-        for field in required_fields:
-            if field not in service_config:
-                raise ConfigError(f"Service '{service_name}' is missing required field: '{field}'")
-            
-            if not isinstance(service_config[field], str):
-                raise ConfigError(f"Service '{service_name}' field '{field}' must be a string")
-            
-            if not service_config[field].strip():
-                raise ConfigError(f"Service '{service_name}' field '{field}' cannot be empty")
-    
-    def get_service(self, service_name: str) -> ServiceConfig:
-        """
-        Get configuration for a specific service
-        
-        Args:
-            service_name: Name of the service
-            
-        Returns:
-            ServiceConfig object
-            
-        Raises:
-            ConfigError: If service not found
-        """
-        if service_name not in self.config:
-            available_services = list(self.config.keys())
-            raise ConfigError(
-                f"Service '{service_name}' not found in configuration. "
-                f"Available services: {available_services}"
-            )
-        
-        return self.config[service_name]
-    
-    def get_all_services(self) -> Dict[str, ServiceConfig]:
-        """
-        Get all configured services
-        
-        Returns:
-            Dictionary of all service configurations
-        """
-        return self.config.copy()
-    
-    def service_exists(self, service_name: str) -> bool:
-        """
-        Check if a service is configured
-        
-        Args:
-            service_name: Name of the service
-            
-        Returns:
-            True if service exists, False otherwise
-        """
-        return service_name in self.config
-    
-    def list_services(self) -> list:
-        """
-        Get list of all configured service names
-        
-        Returns:
-            List of service names
-        """
-        return list(self.config.keys())
-    
     def get(self, key: str) -> Any:
         """
         Get an environment variable value by key.
@@ -226,10 +76,6 @@ class ConfigReader:
         self.config.clear()
         self._load_config()
     
-    def __repr__(self):
-        """String representation of ConfigReader"""
-        return f"ConfigReader(file={self.config_file}, services={list(self.config.keys())})"
-
 # Convenience function for quick usage
 def load_config(config_file: str = 'config.json') -> ConfigReader:
     """

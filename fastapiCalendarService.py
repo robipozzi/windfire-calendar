@@ -13,6 +13,9 @@ from typing import Optional
 from logger.loggingFactory import logger_factory
 logger = logger_factory.get_logger('calendar_api')
 
+# Load configuration 
+from config.config_reader import config
+
 SERVICE_NAME = "Windfire Calendar Service API"
 # Startup is now managed by the lifespan context manager defined below.
 @asynccontextmanager

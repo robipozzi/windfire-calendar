@@ -20,6 +20,11 @@
         }
     },
     "loggers": {
+        "config_reader": {
+            "level": "DEBUG",
+            "handlers": ["console"],
+            "propagate": false
+        },
         "calendar_handler": {
             "level": "DEBUG",
             "handlers": ["console"],
