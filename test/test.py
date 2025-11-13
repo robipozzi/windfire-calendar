@@ -15,7 +15,7 @@ httpsAuthServerUrl = os.getenv("HTTPS_AUTH_SERVER_URL", "https://raspberry01:844
 httpsCalendarServerUrl = os.getenv("HTTPS_CALENDAR_SERVER_URL", "https://localhost:8443")
 
 def test_health_endpoint():
-    print(Style.BRIGHT + Fore.BLUE + "Calling /health endpoint ...")
+    print(Style.BRIGHT + Fore.BLUE + "No Authentication required")
     url = httpsCalendarServerUrl + "/health"
     http_headers = {"Content-Type": "application/json"}
     print(Style.BRIGHT + Fore.BLUE + f"Calling {url} ...")
@@ -34,15 +34,18 @@ def test_health_endpoint():
     except requests.RequestException as e:
         print(Style.BRIGHT + Fore.LIGHTRED_EX + f"Request error: {e}")
 
-
 def authenticate():
     print(Style.BRIGHT + Fore.BLUE + "Authenticating with Windfire Security service to obtain access token...")
-    post_url = "http://localhost:8000/auth"
-    post_headers = {"Content-Type": "application/json"}
-    try:
-        response = requests.post(post_url,
-                     json={'username': username, 'password': password},
-                     headers=post_headers)
+    url = httpsAuthServerUrl + "/auth"
+    http_headers = {"Content-Type": "application/json"}
+    print(Style.BRIGHT + Fore.BLUE + f"Calling {url} ...")
+    try:        
+        response = requests.post(url,
+                                    json={'username': username, 
+                                            'password': password, 
+                                            'service': service},
+                                    headers=http_headers,
+                                    verify=verify_ssl)
         access_token = response.json()['access_token']
         print(f"Return Code: {response.status_code}\n")
         # ****** START - Uncomment for debug purposes in development ONLY ********
@@ -65,8 +68,8 @@ def test_count_events_by_year() -> Optional[dict]:
     """
     if token:
         print(Style.NORMAL + Fore.GREEN + "Authentication token is available, proceeding with POST request...")
-        url = "http://localhost:8000/calendar/events/count/year"
-        headers = {
+        url = httpsCalendarServerUrl + "/calendar/events/count/year"
+        http_headers = {
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json"
         }
@@ -76,9 +79,9 @@ def test_count_events_by_year() -> Optional[dict]:
             "event_title": event_title,
             "year": year
         }
-        
+        print(Style.BRIGHT + Fore.BLUE + f"Calling {url} ...")
         try:
-            response = requests.post(url, json=data, headers=headers)
+            response = requests.post(url, json=data, headers=http_headers, verify=verify_ssl)
             response.raise_for_status()
             
             result = response.json()
@@ -107,8 +110,8 @@ def test_count_events_to_today() -> Optional[dict]:
     """
     if token:
         print(Style.NORMAL + Fore.GREEN + "Authentication token is available, proceeding with POST request...")
-        url = "http://localhost:8000/calendar/events/count/today"
-        headers = {
+        url = httpsCalendarServerUrl + "/calendar/events/count/today"
+        http_headers = {
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json"
         }
@@ -120,9 +123,9 @@ def test_count_events_to_today() -> Optional[dict]:
             "event_title": event_title,
             "start_date": start_date.isoformat()
         }
-
+        print(Style.BRIGHT + Fore.BLUE + f"Calling {url} ...")
         try:
-            response = requests.post(url, json=data, headers=headers)
+            response = requests.post(url, json=data, headers=http_headers, verify=verify_ssl)
             response.raise_for_status()
             
             result = response.json()
@@ -150,8 +153,8 @@ def test_count_events_by_range() -> Optional[dict]:
     """
     if token:
         print(Style.NORMAL + Fore.GREEN + "Authentication token is available, proceeding with POST request...")
-        url = "http://localhost:8000/calendar/events/count/range"
-        headers = {
+        url = httpsCalendarServerUrl + "/calendar/events/count/range"
+        http_headers = {
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json"
         }
@@ -163,9 +166,9 @@ def test_count_events_by_range() -> Optional[dict]:
             "start_date": start_date.isoformat(),
             "end_date": end_date.isoformat()
         }
-
+        print(Style.BRIGHT + Fore.BLUE + f"Calling {url} ...")
         try:
-            response = requests.post(url, json=data, headers=headers)
+            response = requests.post(url, json=data, headers=http_headers, verify=verify_ssl)
             response.raise_for_status()
             
             result = response.json()
@@ -194,14 +197,14 @@ def test_get_upcoming_events() -> Optional[dict]:
     """
     if token:
         print(Style.NORMAL + Fore.GREEN + "Authentication token is available, proceeding with POST request...")
-        url = "http://localhost:8000/calendar/events/upcoming"
-        headers = {
+        url = httpsCalendarServerUrl + "/calendar/events/upcoming"
+        http_headers = {
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json"
         }
-        
+        print(Style.BRIGHT + Fore.BLUE + f"Calling {url} ...")
         try:
-            response = requests.get(url, headers=headers)
+            response = requests.get(url, headers=http_headers, verify=verify_ssl)
             response.raise_for_status()
             
             result = response.json()
@@ -236,11 +239,15 @@ def __test_get_upcoming_events():
     """
     if token:
         print(Style.NORMAL + Fore.GREEN + "Authentication token is available, proceeding with GET request...")
-        url = "http://localhost:8000/calendar/events/upcoming"
+        url = httpsCalendarServerUrl + "/calendar/events/upcoming"
+        http_headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json"
+        }
         headers = ["-H", f"Authorization: Bearer {token}"]
-
+        print(Style.BRIGHT + Fore.BLUE + f"Calling {url} ...")
         get_response = subprocess.run(
-            ["curl", "-X", "GET", url] + headers,
+            ["curl", "-X", "GET", url] + http_headers,
             capture_output=True,
             text=True
         )

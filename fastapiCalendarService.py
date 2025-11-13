@@ -148,50 +148,6 @@ class KeycloakTokenResponse(BaseModel):
     scope: Optional[str] = None
 
 ################### KEYCLOAK AUTHENTICATION ENDPOINT INTEGRATION PLACEHOLDER ###################
-# Authentication endpoint
-@app.post("/auth", response_model=KeycloakTokenResponse)
-async def keycloak_login(login_request: KeycloakLoginRequest):
-    """
-    Authenticate with Keycloak and receive tokens
-    
-    Args:
-        login_request: Username and password
-        
-    Returns:
-        Access token and refresh token
-    """
-    logger.info(f"Keycloak login attempt for user: {login_request.username}")
-    try:
-        # Authenticate with Keycloak
-        token_response = auth.authenticate_with_password(
-            login_request.username,
-            login_request.password
-        )
-        
-        logger.info(f"User {login_request.username} authenticated successfully with Keycloak")
-        
-        return KeycloakTokenResponse(
-            access_token=token_response.get('access_token'),
-            token_type="Bearer",
-            expires_in=token_response.get('expires_in', 0),
-            refresh_token=token_response.get('refresh_token'),
-            refresh_expires_in=token_response.get('refresh_expires_in'),
-            scope=token_response.get('scope')
-        )
-        
-    except KeycloakAuthError as e:
-        logger.warning(f"Keycloak authentication failed for user {login_request.username}: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid username or password"
-        )
-    except Exception as e:
-        logger.error(f"Keycloak authentication error: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Authentication error"
-        )
-
 async def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     try:
         token_claims = auth.verify_token_locally(credentials.credentials)
