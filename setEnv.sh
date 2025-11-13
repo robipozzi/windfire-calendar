@@ -17,6 +17,9 @@ KEYCLOAK_URL="http://raspberry01:8080"
 KEYCLOAK_REALM="windfire"
 KEYCLOAK_CLIENT_ID="windfire-calendar"
 KEYCLOAK_CLIENT_SECRET=
+DEFAULT_USERNAME=windfire
+DEFAULT_AUTH_SERVICE_TEST=windfire-calendar-srv
+VERIFY_SSL_CERTS=false
 ###### Variable section - END
 
 ###### Function section - START
@@ -48,5 +51,33 @@ setEnvironment()
 			printSelectEnvironment
 			;;
 	esac
+}
+
+getCredentials() {
+    while true; do
+        read -r -p "Enter username [${DEFAULT_USERNAME}]: " INPUT_USER
+        if [[ -z "$INPUT_USER" ]]; then
+            USERNAME="$DEFAULT_USERNAME"
+        else
+            USERNAME="$INPUT_USER"
+        fi
+
+        read -s -r -p "Enter password: " PASSWORD
+        echo
+        if [[ -z "$PASSWORD" ]]; then
+            echo "Error: Password cannot be empty."
+            continue
+        fi
+
+        read -r -p "Enter service [${DEFAULT_AUTH_SERVICE_TEST}]: " INPUT_SERVICE
+        if [[ -z "$INPUT_SERVICE" ]]; then
+            AUTH_SERVICE_TEST="$DEFAULT_AUTH_SERVICE_TEST"
+        else
+            AUTH_SERVICE_TEST="$INPUT_SERVICE"
+        fi
+
+        export USERNAME PASSWORD AUTH_SERVICE_TEST
+        break
+    done
 }
 ###### Function section - END

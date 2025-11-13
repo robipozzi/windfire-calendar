@@ -18,11 +18,11 @@ generateCert()
     echo "Generating SSL certificate..."
     #echo "Subject: ${SUBJECT}"
     #openssl req -x509 -newkey rsa:4096 -nodes \
-    #            -out windfire-security-cert.pem -subj "${SUBJECT}" \
-    #            -keyout windfire-security-key.pem -days $DAYS_VALID
+    #            -out windfire-calendar-cert.pem -subj "${SUBJECT}" \
+    #            -keyout windfire-calendar-key.pem -days $DAYS_VALID
     openssl req -x509 -newkey rsa:4096 -nodes \
-                -out windfire-security-cert.pem \
-                -keyout windfire-security-key.pem -days $DAYS_VALID
+                -out windfire-calendar-cert.pem \
+                -keyout windfire-calendar-key.pem -days $DAYS_VALID
     echo "SSL certificate generated"
 }
 

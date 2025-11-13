@@ -7,3 +7,5 @@ app_rotating.log
 app.log
 windfire-calendar.log
 .env
+tls/windfire-calendar-cert.pem
+tls/windfire-calendar-key.pem

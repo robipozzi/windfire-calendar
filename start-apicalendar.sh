@@ -19,7 +19,7 @@ main()
 run()
 {
     printSelectEnvironment $1
-    echo ${cyn}Running calendar service API in environment : $ENVIRONMENT${end} ${grn}$
+    echo ${cyn}Running calendar service API in environment : $ENVIRONMENT${end}
     inputKeycloakClientSecret
     ENVIRONMENT=$ENVIRONMENT \
     KEYCLOAK_URL=$KEYCLOAK_URL \
@@ -32,10 +32,10 @@ run()
 # Function to input KEYCLOAK_CLIENT_SECRET securely
 inputKeycloakClientSecret() {
     while true; do
-        read -s -p "Enter KEYCLOAK_CLIENT_SECRET: " KEYCLOAK_CLIENT_SECRET
+        read -s -p ${blu}"Enter KEYCLOAK_CLIENT_SECRET: "${end} KEYCLOAK_CLIENT_SECRET
         echo
         if [[ -z "$KEYCLOAK_CLIENT_SECRET" ]]; then
-            echo "Error: KEYCLOAK_CLIENT_SECRET cannot be empty. Please try again."
+            echo ${red}"Error: KEYCLOAK_CLIENT_SECRET cannot be empty. Please try again."${end}
         else
             export KEYCLOAK_CLIENT_SECRET
             break

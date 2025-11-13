@@ -7,13 +7,38 @@ import os
 
 token = None
 colorama_init = init(autoreset=True)
+username = os.getenv("USERNAME")
+password = os.getenv("PASSWORD")
+service = os.getenv("SERVICE")
+verify_ssl = os.getenv("VERIFY_SSL_CERTS").lower() == "true"
+httpsAuthServerUrl = os.getenv("HTTPS_AUTH_SERVER_URL", "https://raspberry01:8443")
+httpsCalendarServerUrl = os.getenv("HTTPS_CALENDAR_SERVER_URL", "https://localhost:8443")
+
+def test_health_endpoint():
+    print(Style.BRIGHT + Fore.BLUE + "Calling /health endpoint ...")
+    url = httpsCalendarServerUrl + "/health"
+    http_headers = {"Content-Type": "application/json"}
+    print(Style.BRIGHT + Fore.BLUE + f"Calling {url} ...")
+    try:
+        response = requests.get(url, headers=http_headers, timeout=5, verify=verify_ssl)
+        print(f"GET {url} -> Status Code: {response.status_code}")
+        try:
+            print("Response JSON:", response.json())
+        except ValueError:
+            print("Response Body:", response.text)
+
+        if response.ok:
+            print(Style.NORMAL + Fore.GREEN + "Health endpoint OK")
+        else:
+            print(Style.BRIGHT + Fore.LIGHTRED_EX + "Health endpoint returned error")
+    except requests.RequestException as e:
+        print(Style.BRIGHT + Fore.LIGHTRED_EX + f"Request error: {e}")
+
 
 def authenticate():
-    print(Style.BRIGHT + Fore.BLUE + "Authenticating to obtain access token...")
+    print(Style.BRIGHT + Fore.BLUE + "Authenticating with Windfire Security service to obtain access token...")
     post_url = "http://localhost:8000/auth"
     post_headers = {"Content-Type": "application/json"}
-    username = os.getenv("USERNAME")
-    password = os.getenv("PASSWORD")
     try:
         response = requests.post(post_url,
                      json={'username': username, 'password': password},
@@ -231,6 +256,11 @@ def main():
     print(Style.BRIGHT + Fore.CYAN +"##### Testing FastAPI Calendar Service Endpoints #####")
     print(Style.BRIGHT + Fore.CYAN +"######################################################")
     print("")
+
+    print(Style.BRIGHT + Fore.BLUE + "===> Testing /health endpoint <===")
+    test_health_endpoint()
+    print("")
+
     token = authenticate()
     print("")
     

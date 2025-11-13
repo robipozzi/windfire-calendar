@@ -38,7 +38,6 @@ class ConfigReader:
         logger.info(f"  API_PORT: {os.getenv('API_PORT')}")
         logger.info(f"  SSL_KEYFILE: {os.getenv('SSL_KEYFILE')}")
         logger.info(f"  SSL_CERTFILE: {os.getenv('SSL_CERTFILE')}")
-        logger.info(f"  SSL_CERTFILE: {os.getenv('SSL_CERTFILE')}")
         logger.info(f"  ENFORCE_HTTPS: {os.getenv('ENFORCE_HTTPS')}")
         logger.info(f"  ALLOWED_HOSTS: {os.getenv('ALLOWED_HOSTS')}")
         logger.info(f"  KEYCLOAK_SERVER_URL: {os.getenv('KEYCLOAK_SERVER_URL')}")
