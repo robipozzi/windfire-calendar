@@ -1,0 +1,1 @@
+ansible-playbook windfire-calendar-install.yaml

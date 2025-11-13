@@ -1,4 +1,4 @@
-source ./setenv.sh
+source ../setenv.sh
 
 # ***** Run Windfire Calendar application (wraps Google Calendar API)
 main()

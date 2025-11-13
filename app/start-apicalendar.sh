@@ -1,4 +1,4 @@
-source ./setenv.sh
+source ../setenv.sh
 
 # ***** Start FastAPI server for Windfire Calendar API (wraps Google Calendar API)
 main()

@@ -1,4 +1,4 @@
-source ./setenv.sh
+source ../setenv.sh
 
 # ***** Create Python Virtual environment
 main()

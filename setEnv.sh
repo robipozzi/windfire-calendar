@@ -11,7 +11,7 @@ coffee3="${coffee} ${coffee} ${coffee}"
 ##### Terminal Colors - END
 
 ###### Variable section - START
-PYTORCH_VIRTUAL_ENV=google-calendar
+PYTORCH_VIRTUAL_ENV=windfire-calendar
 ENVIRONMENT=
 KEYCLOAK_URL="http://raspberry01:8080"
 KEYCLOAK_REALM="windfire"

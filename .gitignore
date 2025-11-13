@@ -1,11 +1,9 @@
-google-calendar/
 __pycache__/
+app/tls/windfire-calendar-cert.pem
+app/tls/windfire-calendar-key.pem
+windfire-calendar/
+.env
 credentials.json
 token.json
 .DS_Store
-app_rotating.log
-app.log
 windfire-calendar.log
-.env
-tls/windfire-calendar-cert.pem
-tls/windfire-calendar-key.pem

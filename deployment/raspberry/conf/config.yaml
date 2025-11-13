@@ -1,0 +1,10 @@
+user: pi
+group: pi
+remote_home_dir: /home/pi
+remote_windfire_calendar_dir: "{{ remote_home_dir }}/windfire-calendar"
+venv_path: "{{ remote_windfire_calendar_dir }}/app/windfire-calendar"
+python_interpreter: "python3"
+install_python_modules_script: installPrereqs.sh
+run_server_script: start-apicalendar.sh
+stop_server_script: stop-apicalendar.sh
+process: fastapiCalendarService.py
