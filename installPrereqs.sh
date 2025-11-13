@@ -16,5 +16,17 @@ installPythonModules()
                 cryptography==41.0.0
 }
 
+# ***** Install custom Windfire Security Python modules
+installCustomPythonModules()
+{
+    pip3 install -e $HOME/dev/windfire-security
+}
+
 # ***** MAIN EXECUTION
+echo "Installing Python prerequisites..."
 installPythonModules
+echo "Python prerequisites installation complete."
+echo ""
+echo "Installing custom Python prerequisites..."
+installCustomPythonModules
+echo "Custom Python prerequisites installation complete."

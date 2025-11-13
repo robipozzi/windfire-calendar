@@ -4,13 +4,14 @@ from fastapi import FastAPI, HTTPException, Depends, status, Request
 from fastapi.responses import RedirectResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from keycloakAuth import KeycloakAuth, KeycloakAuthError
 from pydantic import BaseModel, Field
 from datetime import date
 from typing import Optional, List
 from service import calendarService
 from contextlib import asynccontextmanager
 from typing import Optional
+# Import the AuthClient instance from the client package
+from client.authClient import authClient
 
 # Initialize logger at the top so it's available everywhere
 from logger.loggingFactory import logger_factory
@@ -29,7 +30,6 @@ async def lifespan(app):
     try:
         # The calendarService module automatically authenticates on import
         logger.info("Google Calendar service initialized successfully")
-        logger.debug(f"Auth = {auth.__dict__}")
     except Exception as e:
         logger.error(f"Failed to initialize Google Calendar service: {str(e)}")
     yield
@@ -44,13 +44,12 @@ app = FastAPI(
     redirect_slashes=False
 )
 
-#####################################################
-########## START - Security Configurations ##########
-#####################################################
+#######################################################################
+################### START - Security Configurations ###################
+#######################################################################
 # Instantiates FastAPI’s HTTPBearer dependency 
 # It extracts a Bearer token from the Authorization header of incoming requests. 
 security = HTTPBearer()
-auth = KeycloakAuth()
 # HTTPs enforcement and allowed hosts from config
 ENFORCE_HTTPS = config.get('ENFORCE_HTTPS')
 ALLOWED_HOSTS = config.get('ALLOWED_HOSTS').split(',')
@@ -107,10 +106,36 @@ if ENFORCE_HTTPS == True:
     logger.info("🔒 HTTPS enforcement enabled - all HTTP requests will be redirected to HTTPS")
 else:
     logger.warning("⚠️  HTTPS enforcement disabled - API accessible via HTTP (not recommended for production)")
-###################################################
-########## END - Security Configurations ##########
-###################################################
+#####################################################################
+################### END - Security Configurations ###################
+#####################################################################
 
+#################################################################################
+################### START - AUTHENTICATION TOKEN VERIFICATION ###################
+#################################################################################
+async def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    # Verify token by calling the external verification endpoint
+    token = credentials.credentials
+    service = config.get("KEYCLOAK_SERVICE")
+    logger.info("Delegating token verification to authClient module ...")
+    logger.debug("Calling client.authClient.verify() ...")
+    isTokenValid = authClient.verify(token, service=service, method="remote")
+
+    if not isTokenValid:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    logger.info(f"Token verified successfully for service: {service}")
+    return token
+###############################################################################
+################### END - AUTHENTICATION TOKEN VERIFICATION ###################
+###############################################################################
+
+#####################################################################################
+################### START - ENDPOINTS AND REQUEST/RESPONSE MODELS ###################
+#####################################################################################
 # Pydantic models for request/response
 class EventCountRequest(BaseModel):
     event_title: str = Field(..., description="Title of the events to count")
@@ -134,27 +159,6 @@ class CalendarEvent(BaseModel):
 class UpcomingEventsResponse(BaseModel):
     events: List[CalendarEvent]
     count: int
-
-class KeycloakLoginRequest(BaseModel):
-    username: str = Field(..., description="Username")
-    password: str = Field(..., description="Password")
-
-class KeycloakTokenResponse(BaseModel):
-    access_token: str
-    token_type: str = "Bearer"
-    expires_in: int
-    refresh_token: Optional[str] = None
-    refresh_expires_in: Optional[int] = None
-    scope: Optional[str] = None
-
-################### KEYCLOAK AUTHENTICATION ENDPOINT INTEGRATION PLACEHOLDER ###################
-async def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    try:
-        token_claims = auth.verify_token_locally(credentials.credentials)
-        return token_claims
-    except Exception as e:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
-################### KEYCLOAK AUTHENTICATION ENDPOINT INTEGRATION PLACEHOLDER ###################
 
 # Health check endpoint
 @app.get("/health")
@@ -274,7 +278,11 @@ async def get_upcoming_events(current_user: dict = Depends(verify_token)):
     except Exception as e:
         logger.error(f"Failed to get upcoming events: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to get upcoming events: {str(e)}")
+###################################################################################
+################### END - ENDPOINTS AND REQUEST/RESPONSE MODELS ###################
+###################################################################################
 
+################### MAIN PROGRAM EXECUTION ###################
 if __name__ == "__main__":
     logger.info("Starting Windfire Calendar FastAPI server...")
     # Get SSL configuration from environment variables
