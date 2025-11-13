@@ -4,6 +4,8 @@ from colorama import Fore, Style, init
 from typing import Optional
 from datetime import date
 import os
+# Import the AuthClient instance from the client package
+from client.authClient import authClient
 
 token = None
 colorama_init = init(autoreset=True)
@@ -36,30 +38,13 @@ def test_health_endpoint():
 
 def authenticate():
     print(Style.BRIGHT + Fore.BLUE + "Authenticating with Windfire Security service to obtain access token...")
-    url = httpsAuthServerUrl + "/auth"
-    http_headers = {"Content-Type": "application/json"}
-    print(Style.BRIGHT + Fore.BLUE + f"Calling {url} ...")
-    try:        
-        response = requests.post(url,
-                                    json={'username': username, 
-                                            'password': password, 
-                                            'service': service},
-                                    headers=http_headers,
-                                    verify=verify_ssl)
-        access_token = response.json()['access_token']
-        print(f"Return Code: {response.status_code}\n")
-        # ****** START - Uncomment for debug purposes in development ONLY ********
-        #print(f"Response Body: {response.__dict__}\n")
-        #print(f"Access Token: {access_token}\n")
-        # ****** START - Uncomment for debug purposes in development ONLY ********
-        if not access_token is None:
-            print(Style.NORMAL + Fore.GREEN + "Authentication successful")
-    except Exception:
+    access_token = authClient.authenticate(username, password, service)
+    #print(f"Access Token (from AuthClient): {access_token}\n")
+    if not access_token is None:
+        print(Style.NORMAL + Fore.GREEN + "Authentication successful")
+    else:
         access_token = None
         print(Style.BRIGHT + Fore.LIGHTRED_EX + "Authentication failed")
-        print(f"Response: {response.__dict__} \n")
-        print("POST Status Code:", response.status_code)
-        
     return access_token
 
 def test_count_events_by_year() -> Optional[dict]:
@@ -102,7 +87,7 @@ def test_count_events_by_year() -> Optional[dict]:
             return None
         
     else:
-        print(Style.BRIGHT + Fore.LIGHTRED_EX + "No authentication token available, skipping POST request")
+        print(Style.BRIGHT + Fore.LIGHTRED_EX + "No valid authentication token available, skipping POST request")
 
 def test_count_events_to_today() -> Optional[dict]:
     """
@@ -145,7 +130,7 @@ def test_count_events_to_today() -> Optional[dict]:
                     print(f"   Response text: {e.response.text}")
             return None
     else:
-        print(Style.BRIGHT + Fore.LIGHTRED_EX + "No authentication token available, skipping POST request")
+        print(Style.BRIGHT + Fore.LIGHTRED_EX + "No valid authentication token available, skipping POST request")
 
 def test_count_events_by_range() -> Optional[dict]:
     """
@@ -189,7 +174,7 @@ def test_count_events_by_range() -> Optional[dict]:
             return None
         
     else:
-        print(Style.BRIGHT + Fore.LIGHTRED_EX + "No authentication token available, skipping POST request")
+        print(Style.BRIGHT + Fore.LIGHTRED_EX + "No valid authentication token available, skipping POST request")
 
 def test_get_upcoming_events() -> Optional[dict]:
     """
@@ -230,7 +215,7 @@ def test_get_upcoming_events() -> Optional[dict]:
                     print(f"   Response text: {e.response.text}")
             return None
     else:
-        print(Style.BRIGHT + Fore.LIGHTRED_EX + "No authentication token available, skipping GET request")
+        print(Style.BRIGHT + Fore.LIGHTRED_EX + "No valid authentication token available, skipping GET request")
         
 # NOT USED keeping for reference    
 def __test_get_upcoming_events():
@@ -255,7 +240,7 @@ def __test_get_upcoming_events():
         print("GET Status Code:", get_response.returncode)
         print("GET Response Body:", get_response.stdout)
     else:
-        print(Style.BRIGHT + Fore.LIGHTRED_EX + "No authentication token available, skipping GET request")
+        print(Style.BRIGHT + Fore.LIGHTRED_EX + "No valid authentication token available, skipping GET request")
             
 def main():
     global token
