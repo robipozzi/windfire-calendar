@@ -18,8 +18,8 @@ main()
     source "$PYTORCH_VIRTUAL_ENV/bin/activate"
     echo ${grn}Python Virtual Environment activated${end}
     echo 
-    source ./installPrereqs.sh
+    source ./installPrereqs.sh $1
 }
 
 # ***** MAIN EXECUTION
-main
+main $1

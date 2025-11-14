@@ -8,3 +8,4 @@ install_python_modules_script: installPrereqs.sh
 run_server_script: start-apicalendar.sh
 stop_server_script: stop-apicalendar.sh
 process: fastapiCalendarService.py
+env: 3

@@ -11,13 +11,13 @@ main()
     if [ -d "$PYTORCH_VIRTUAL_ENV" ]; then
         echo "Python virtual environment ${blu}$PYTORCH_VIRTUAL_ENV${end} exists, activating ..."
         echo
-        activate
+        activate $1
     else
         echo "${mag}Python virtual environment $PYTORCH_VIRTUAL_ENV does not exist, creating ..."${end}
         echo
         create
         echo
-        activate
+        activate $1
     fi
 }
 
@@ -30,8 +30,8 @@ create()
 
 activate()
 {
-    source ./activatePythonVenv.sh
+    source ./activatePythonVenv.sh $1
 }
 
 # ***** MAIN EXECUTION
-main
+main $1

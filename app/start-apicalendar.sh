@@ -12,7 +12,7 @@ main()
     echo    3. Install Python prerequisites, if not already installed
     echo    4. Run the Windfire Calendar FastAPI server
     echo 
-    source ./createPythonVenv.sh
+    source ./createPythonVenv.sh $1
     run $1
 }
 
