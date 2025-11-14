@@ -13,16 +13,14 @@ coffee3="${coffee} ${coffee} ${coffee}"
 ###### Variable section - START
 PYTORCH_VIRTUAL_ENV=windfire-calendar
 ENVIRONMENT=
-KEYCLOAK_URL="http://raspberry01:8080"
-KEYCLOAK_REALM="windfire"
-KEYCLOAK_CLIENT_ID="windfire-calendar"
-KEYCLOAK_CLIENT_SECRET=
+#KEYCLOAK_CLIENT_SECRET=
 DEFAULT_USERNAME=windfire
 DEFAULT_AUTH_SERVICE_TEST=windfire-calendar-srv
 VERIFY_SSL_CERTS=false
 ###### Variable section - END
 
 ###### Function section - START
+# Function to select environment where program should run
 printSelectEnvironment()
 {
     ENVIRONMENT_SELECTION=$1
@@ -53,6 +51,7 @@ setEnvironment()
 	esac
 }
 
+# Function to input credentials securely
 getCredentials() {
     while true; do
         read -r -p "Enter username [${DEFAULT_USERNAME}]: " INPUT_USER
@@ -79,5 +78,24 @@ getCredentials() {
         export USERNAME PASSWORD AUTH_SERVICE_TEST
         break
     done
+}
+
+# Function to input KEYCLOAK_CLIENT_SECRET securely
+inputKeycloakClientSecret() {
+    echo ${red}"KEYCLOAK_CLIENT_SECRET is set to $KEYCLOAK_CLIENT_SECRET"${end}
+    if [ -n "$KEYCLOAK_CLIENT_SECRET" ]; then
+        echo "KEYCLOAK_CLIENT_SECRET set to $KEYCLOAK_CLIENT_SECRET"
+    else
+        while true; do
+            read -s -p ${blu}"Enter KEYCLOAK_CLIENT_SECRET: "${end} KEYCLOAK_CLIENT_SECRET
+            echo
+            if [[ -z "$KEYCLOAK_CLIENT_SECRET" ]]; then
+                echo ${red}"Error: KEYCLOAK_CLIENT_SECRET cannot be empty. Please try again."${end}
+            else
+                export KEYCLOAK_CLIENT_SECRET
+                break
+            fi
+        done
+    fi
 }
 ###### Function section - END
