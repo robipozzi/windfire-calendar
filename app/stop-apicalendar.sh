@@ -1,4 +1,5 @@
 source ../setenv.sh
+source ../commons.sh
 
 PROCESS_TO_KILL=fastapiCalendarService.py
 PID=
