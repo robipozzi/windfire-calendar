@@ -28,11 +28,11 @@ def getChoice():
 ##### Main program function #####
 #################################
 def main():
-  logger.info("Starting calendar manager application")
-  logger.debug(f"### Current Environment ###")
-  logger.debug(f"ENVIRONMENT: {os.getenv('ENVIRONMENT', 'prod')}")
-  ### Menu Options - START
-  while True:
+    logger.info("Starting calendar manager application")
+    logger.debug(f"### Current Environment ###")
+    logger.debug(f"ENVIRONMENT: {os.getenv('ENVIRONMENT', 'prod')}")
+    # Menu Options - START
+    while True:
         printMenu()
         choice = getChoice()
         if choice == '1':
@@ -55,10 +55,10 @@ def main():
             print(Fore.RED + "Exiting the program. Goodbye!")
             break
         else:
-            print(Fore.RED + "Invalid choice. Please try again.")
+            print(Fore.RED + "Invalid choice. Please try again.")   
 
 ##########################
 ##### Main Execution #####
 ##########################
 if __name__ == "__main__":
-  main()
+    main()
