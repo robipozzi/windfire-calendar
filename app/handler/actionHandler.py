@@ -1,14 +1,13 @@
 from datetime import date
 from utils import dateMgr
-from service import calendarService
+from service.calendarService import calendarSrv
 from colorama import Fore, Style, init
-
-# Initialize colorama
-init(autoreset=True)
-
 # Initialize logger at the top so it's available everywhere
 from logger.loggingFactory import logger_factory
 logger = logger_factory.get_logger('calendar_handler')
+
+# Initialize colorama
+init(autoreset=True)
 
 def getYearInput():
   logger.debug(f"====> actionHandler.getYearInput() called <====")
@@ -84,7 +83,7 @@ def countCalendarEventsYearHandler():
   print(Style.BRIGHT + Fore.GREEN + f"You entered year: {year} and event name: {event_title}")
   #== Date input - END
   # Call Calendar events management service
-  num_events = calendarService.countCalendarEventsYear(event_title, year)
+  num_events = calendarSrv.countCalendarEventsYear(event_title, year)
   print(Style.NORMAL + Fore.CYAN + f"Number of '{event_title}' events for year {year}: {num_events}")
 
 def countCalendarEventsTodayHandler():
@@ -95,7 +94,7 @@ def countCalendarEventsTodayHandler():
   print(Style.BRIGHT + Fore.GREEN + f"You entered start date: {start_date} and event name: {event_title}")
   #== Date input - END
   # Call Calendar events management service
-  num_events = calendarService.countCalendarEventsToday(event_title, start_date)
+  num_events = calendarSrv.countCalendarEventsToday(event_title, start_date)
   print(Style.NORMAL + Fore.CYAN + f"Number of '{event_title}' events from {start_date} up to today: {num_events}")
 
 def countCalendarEventsHandler():
@@ -114,12 +113,12 @@ def countCalendarEventsHandler():
   event_title = getEventInput()
   print(Style.BRIGHT + Fore.GREEN + f"You entered event name: {event_title}")
   # Call Calendar events management service
-  num_events = calendarService.countCalendarEvents(event_title, start_date, end_date)
+  num_events = calendarSrv.countCalendarEvents(event_title, start_date, end_date)
   print(Style.NORMAL + Fore.CYAN + f"Number of '{event_title}' events from {start_date} to {end_date}: {num_events}")
 
 def getUpcomingEventsHandler():
   logger.debug(f"====> actionHandler.getUpcomingEventsHandler() called <====")
-  events = calendarService.getUpcomingEvents()
+  events = calendarSrv.getUpcomingEvents()
   # Prints the start and name of the next 10 events
   for event in events:
     start = event["start"].get("dateTime", event["start"].get("date"))

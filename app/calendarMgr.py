@@ -1,13 +1,12 @@
 from colorama import Fore, Style, init
 from handler import actionHandler
 import os
-
-# Initialize colorama
-init(autoreset=True)
-
 # Initialize logger at the top so it's available everywhere
 from logger.loggingFactory import logger_factory
 logger = logger_factory.get_logger('calendar_api')
+
+# Initialize colorama
+init(autoreset=True)
 
 #############################################
 ##### Menu options management functions #####

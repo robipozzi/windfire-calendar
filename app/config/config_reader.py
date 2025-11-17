@@ -1,7 +1,6 @@
 import os
 from typing import Any
 from dotenv import load_dotenv
-
 # Initialize logger at the top so it's available everywhere
 from logger.loggingFactory import logger_factory
 logger = logger_factory.get_logger('config_reader')

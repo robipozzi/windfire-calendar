@@ -7,16 +7,14 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from pydantic import BaseModel, Field
 from datetime import date
 from typing import Optional, List
-from service import calendarService
+from service.calendarService import calendarSrv
 from contextlib import asynccontextmanager
 from typing import Optional
 # Import the AuthClient instance from the client package
 from client.authClient import authClient
-
 # Initialize logger at the top so it's available everywhere
 from logger.loggingFactory import logger_factory
 logger = logger_factory.get_logger('calendar_api')
-
 # Load configuration 
 from config.config_reader import config
 
@@ -182,7 +180,7 @@ async def count_events_by_year(
         raise HTTPException(status_code=400, detail="Year is required for this endpoint")
     
     try:
-        count = calendarService.countCalendarEventsYear(request.event_title, request.year)
+        count = calendarSrv.countCalendarEventsYear(request.event_title, request.year)
         
         # Determine date range for response
         start_date = date(request.year, 1, 1)
@@ -212,7 +210,7 @@ async def count_events_to_today(
         raise HTTPException(status_code=400, detail="Start date is required for this endpoint")
     
     try:
-        count = calendarService.countCalendarEventsToday(request.event_title, request.start_date)
+        count = calendarSrv.countCalendarEventsToday(request.event_title, request.start_date)
         end_date = date.today()
         
         return EventCountResponse(
@@ -239,7 +237,7 @@ async def count_events_by_range(
         raise HTTPException(status_code=400, detail="Start date must be before or equal to end date")
     
     try:
-        count = calendarService.countCalendarEvents(request.event_title, request.start_date, request.end_date)
+        count = calendarSrv.countCalendarEvents(request.event_title, request.start_date, request.end_date)
         
         return EventCountResponse(
             event_title=request.event_title,
@@ -257,7 +255,7 @@ async def get_upcoming_events(current_user: dict = Depends(verify_token)):
     """
     logger.debug("====> START - /calendar/events/upcoming endpoint called <====")
     try:
-        events = calendarService.getUpcomingEvents()
+        events = calendarSrv.getUpcomingEvents()
         
         if not events:
             return UpcomingEventsResponse(events=[], count=0)

@@ -1,13 +1,12 @@
 from datetime import date, datetime, time
 import dateutil.parser
 from colorama import Fore, init
-
-# Initialize colorama
-init(autoreset=True)
-
 # Initialize logger at the top so it's available everywhere
 from logger.loggingFactory import logger_factory
 logger = logger_factory.get_logger('date_manager')
+
+# Initialize colorama
+init(autoreset=True)
 
 """
   Formats a date object into a string in the "YYYY-MM-DD" format.
