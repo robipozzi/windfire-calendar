@@ -8,29 +8,13 @@ logger = logger_factory.get_logger('calendar_api')
 # Initialize colorama
 init(autoreset=True)
 
+keepRunning = True
+
 #############################################
 ##### Menu options management functions #####
 #############################################
-def printMenu():
-    print(Style.BRIGHT + Fore.CYAN + "Menu:")
-    print(Fore.CYAN + "1. Count calendar events for a specific year")
-    print(Fore.CYAN + "2. Count calendar events from start date up to today")
-    print(Fore.CYAN + "3. Count calendar events from start to end date")
-    print(Fore.CYAN + "4. List upcoming 10 events")
-    print(Fore.CYAN + "5. Exit")
-
-def getChoice():
-    choice = input(Fore.MAGENTA + "Enter your choice (1-4): ")
-    return choice
-
-#################################
-##### Main program function #####
-#################################
-def main():
-    logger.info("Starting calendar manager application")
-    logger.debug(f"### Current Environment ###")
-    logger.debug(f"ENVIRONMENT: {os.getenv('ENVIRONMENT', 'prod')}")
-    # Menu Options - START
+def run():
+    global keepRunning
     while True:
         printMenu()
         choice = getChoice()
@@ -51,11 +35,38 @@ def main():
             actionHandler.getUpcomingEventsHandler()
             break
         elif choice == '5':
-            print(Fore.RED + "Exiting the program. Goodbye!")
+            print(Style.BRIGHT + Fore.BLUE + "Exiting the program. Goodbye!")
+            keepRunning = False
             break
         else:
-            print(Fore.RED + "Invalid choice. Please try again.")   
+            print(Style.BRIGHT + Fore.RED + "Invalid choice. Please try again.")   
 
+def printMenu():
+    print(Style.BRIGHT + Fore.CYAN + "Menu:")
+    print(Fore.CYAN + "1. Count calendar events for a specific year")
+    print(Fore.CYAN + "2. Count calendar events from start date up to today")
+    print(Fore.CYAN + "3. Count calendar events from start to end date")
+    print(Fore.CYAN + "4. List upcoming 10 events")
+    print(Fore.CYAN + "5. Exit")
+
+def getChoice():
+    choice = input(Fore.MAGENTA + "Enter your choice (1-4): ")
+    return choice
+
+#################################
+##### Main program function #####
+#################################
+def main():
+    global keepRunning
+    logger.info("Starting calendar manager application")
+    logger.debug(f"### Current Environment ###")
+    logger.debug(f"ENVIRONMENT: {os.getenv('ENVIRONMENT', 'prod')}")
+    logger.debug(f"1. keepRunning = {keepRunning}")
+    keepRunning = True
+    logger.debug(f"2. keepRunning = {keepRunning}")
+    while keepRunning:
+        run()
+    
 ##########################
 ##### Main Execution #####
 ##########################

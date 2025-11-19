@@ -84,7 +84,7 @@ def countCalendarEventsYearHandler():
   #== Date input - END
   # Call Calendar events management service
   num_events = calendarSrv.countCalendarEventsYear(event_title, year)
-  print(Style.NORMAL + Fore.CYAN + f"Number of '{event_title}' events for year {year}: {num_events}")
+  print(Style.BRIGHT + Fore.BLACK + f"Number of '{event_title}' events for year {year}: {num_events}")
 
 def countCalendarEventsTodayHandler():
   logger.debug(f"====> actionHandler.countCalendarEventsTodayHandler() called <====")
@@ -95,7 +95,7 @@ def countCalendarEventsTodayHandler():
   #== Date input - END
   # Call Calendar events management service
   num_events = calendarSrv.countCalendarEventsToday(event_title, start_date)
-  print(Style.NORMAL + Fore.CYAN + f"Number of '{event_title}' events from {start_date} up to today: {num_events}")
+  print(Style.BRIGHT + Fore.BLACK + f"Number of '{event_title}' events from {start_date} up to today: {num_events}")
 
 def countCalendarEventsHandler():
   logger.debug(f"====> actionHandler.countCalendarEventsHandler() called <====")
@@ -114,7 +114,7 @@ def countCalendarEventsHandler():
   print(Style.BRIGHT + Fore.GREEN + f"You entered event name: {event_title}")
   # Call Calendar events management service
   num_events = calendarSrv.countCalendarEvents(event_title, start_date, end_date)
-  print(Style.NORMAL + Fore.CYAN + f"Number of '{event_title}' events from {start_date} to {end_date}: {num_events}")
+  print(Style.BRIGHT + Fore.BLACK + f"Number of '{event_title}' events from {start_date} to {end_date}: {num_events}")
 
 def getUpcomingEventsHandler():
   logger.debug(f"====> actionHandler.getUpcomingEventsHandler() called <====")
@@ -122,4 +122,4 @@ def getUpcomingEventsHandler():
   # Prints the start and name of the next 10 events
   for event in events:
     start = event["start"].get("dateTime", event["start"].get("date"))
-    print(Style.NORMAL + Fore.CYAN + start, Style.NORMAL + Fore.CYAN + event["summary"])
+    print(Style.BRIGHT + Fore.BLACK + start, Style.BRIGHT + Fore.BLACK + event["summary"])
