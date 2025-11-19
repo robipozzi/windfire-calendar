@@ -63,7 +63,7 @@ getCredentials() {
 # Function to input KEYCLOAK_CLIENT_SECRET securely
 inputKeycloakClientSecret() {
     if [ -n "$KEYCLOAK_CLIENT_SECRET" ]; then
-        echo "KEYCLOAK_CLIENT_SECRET set to $KEYCLOAK_CLIENT_SECRET"
+        echo "KEYCLOAK_CLIENT_SECRET set"
     else
         while true; do
             read -s -p ${blu}"Enter Keycloak Client Secret for $AUTH_SERVICE_TEST service: "${end} KEYCLOAK_CLIENT_SECRET
