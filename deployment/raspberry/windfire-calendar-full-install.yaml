@@ -37,40 +37,79 @@
         state: present
   tasks:
     #################################################################
-    ##### Windfire Security server component deployment Section #####
+    ##### Windfire Calendar server component deployment Section #####
     #################################################################
-    # Task 1: Delete Windfire Security directory on remote server
-    - name: Remove "{{ remote_windfire_security_dir }}" directory and all its contents on remote server 
+    # Task 1: Stop Windfire Calendar service on remote server
+    - name: Get PID for running process "{{ process }}"
+      shell: "pgrep -f {{ process }}"
+      register: app_pid
+      failed_when: app_pid.rc > 1
+    
+    - name: Kill "{{ process }}" process gracefully
+      shell: "kill -TERM {{ item }}"
+      with_items: "{{ app_pid.stdout_lines }}"
+      when: app_pid.rc == 0
+      register: kill_result
+      failed_when:
+        - kill_result.rc != 0
+        - '"No such process" not in kill_result.stderr'
+
+    - name: Wait for "{{ process }}" process graceful termination
+      wait_for:
+        path: "/proc/{{ item }}/status"
+        state: absent
+      with_items: "{{ app_pid.stdout_lines }}"
+      when: app_pid.rc == 0
+      ignore_errors: yes
+    
+    # Task 2: Delete Windfire Calendar directory on remote server
+    - name: Remove "{{ remote_windfire_calendar_dir }}" folder and all its contents on remote server 
       ansible.builtin.file:
-        path: "{{ remote_windfire_security_dir }}"
+        path: "{{ remote_windfire_calendar_dir }}"
         state: absent
     
-    # Task 2: Create Windfire Security directory on remote server and copy files
-    - name: Copy Windfire Security server component to "{{ remote_windfire_security_dir }}" directory on remote server
+    # Task 3: Create Windfire Calendar directory on remote server and copy files
+    - name: Copy Windfire Calendar server component to "{{ remote_windfire_calendar_dir }}" directory on remote server
       ansible.builtin.synchronize:
-        src: "../../server"
-        dest: "{{ remote_windfire_security_dir }}"
+        src: "../../app"
+        dest: "{{ remote_windfire_calendar_dir }}"
         rsync_opts:
-          - "--exclude=windfire-security-server"
           - "--exclude=__pycache__"
+          - "--exclude=windfire-calendar"
           - "--exclude=.env_PLACEHOLDER"
+          - "--exclude=windfire-calendar.log"
 
-    # Task 3: Copy setenv.sh to remote server
-    - name: Copy setenv.sh to "{{ remote_windfire_security_dir }}" directory on remote server
+    # Task 4: Copy setenv.sh to remote server
+    - name: Copy setenv.sh to "{{ remote_windfire_calendar_dir }}" directory on remote server
       copy:
         src: "../../setenv.sh"
-        dest: "{{ remote_windfire_security_dir }}"
+        dest: "{{ remote_windfire_calendar_dir }}"
         owner: "{{ user }}"
         group: "{{ group }}"
         mode: "{{ mode }}"
+    
+    # Task 5: Copy commons.sh to remote server
+    - name: Copy commons.sh to "{{ remote_windfire_calendar_dir }}" directory on remote server
+      copy:
+        src: "../../commons.sh"
+        dest: "{{ remote_windfire_calendar_dir }}"
+        owner: "{{ user }}"
+        group: "{{ group }}"
+        mode: "{{ mode }}"
+    
+    # Task 6: Copy custom Python module to remote server
+    - name: Copy custom Python module directory to "{{ remote_home_dir }}" directory on remote server
+      ansible.builtin.synchronize:
+        src: "../../../../windfire-security/dist"
+        dest: "{{ remote_home_dir }}"
 
-    # Task 4: Create Python virtual environment
+    # Task 7: Create Python virtual environment
     - name: Create Python virtual environment
       command:
         cmd: "{{ python_interpreter }} -m venv {{ venv_path }}"
         creates: "{{ venv_path }}/bin/activate"
 
-    # Task 5: Verify virtualenv installation
+    # Task 8: Verify virtualenv installation
     - name: Verify virtualenv is properly configured
       shell:
         cmd: "source {{ venv_path }}/bin/activate && python --version"
@@ -81,15 +120,15 @@
       debug:
         msg: "Python version in virtualenv: {{ python_version.stdout }}"
     
-    # Task 6: Install required Python modules in virtualenv
+    # Task 9: Install required Python modules in virtualenv
     - name: Install required Python modules in virtualenv by running {{ install_python_modules_script }} install script
       shell: |
         source {{ venv_path }}/bin/activate
-        bash {{ remote_windfire_security_dir }}/server/{{ install_python_modules_script }}
+        bash {{ remote_windfire_calendar_dir }}/app/{{ install_python_modules_script }} {{ env }}
       args:
         executable: /bin/bash
       
-    # Task 7: List installed packages
+    # Task 10: List installed packages
     - name: List installed packages in virtualenv
       shell:
         cmd: "{{ venv_path }}/bin/pip list"
