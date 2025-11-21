@@ -13,8 +13,17 @@ username = os.getenv("USERNAME")
 password = os.getenv("PASSWORD")
 service = os.getenv("SERVICE")
 verify_ssl = os.getenv("VERIFY_SSL_CERTS").lower() == "true"
+environment = os.getenv("ENVIRONMENT")
+print(Style.BRIGHT + Fore.BLUE + f"environment = {environment}")
 httpsAuthServerUrl = os.getenv("HTTPS_AUTH_SERVER_URL", "https://raspberry01:8443")
 httpsCalendarServerUrl = os.getenv("HTTPS_CALENDAR_SERVER_URL", "https://localhost:8443")
+if environment == "dev":
+    httpsCalendarServerUrl = os.getenv("HTTPS_CALENDAR_SERVER_URL", "https://localhost:8443")
+elif environment == "test":
+    httpsCalendarServerUrl = os.getenv("HTTPS_CALENDAR_SERVER_URL", "https://localhost:8443")
+elif environment == "prod":
+    httpsCalendarServerUrl = os.getenv("HTTPS_CALENDAR_SERVER_URL", "https://raspberry02:8443")
+
 
 def test_health_endpoint():
     print(Style.BRIGHT + Fore.BLUE + "No Authentication required")
