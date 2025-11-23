@@ -7,9 +7,9 @@ from googleapiclient.errors import HttpError
 from utils import dateMgr
 from datetime import date
 from colorama import init
-# Initialize logger at the top so it's available everywhere
-from logger.loggingFactory import logger_factory
-logger = logger_factory.get_logger('calendar_service')
+# Initialize logger at the top so it's available everywhere 
+from logger.loggerFactory import logger_factory
+logger = logger_factory.get_logger('calendarService')
 
 # If modifying these scopes, delete the file token.json.
 SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]

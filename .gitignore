@@ -6,4 +6,4 @@ windfire-calendar/
 credentials.json
 token.json
 .DS_Store
-windfire-calendar.log
+windfire-calendar.log*
