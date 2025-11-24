@@ -6,9 +6,8 @@ from apiRouter import api
 from logger.loggerFactory import logger_factory
 logger = logger_factory.get_logger('middlewares')
 
-# HTTPs enforcement middleware configuration
+# =====> START - HTTPs enforcement middleware configuration <=====
 ENFORCE_HTTPS = settings.get('ENFORCE_HTTPS')
-
 async def https_enforcement_middleware(request: Request, call_next):
     """
     Custom middleware to enforce HTTPS with exceptions for health checks
@@ -47,3 +46,4 @@ async def https_enforcement_middleware(request: Request, call_next):
     response.headers["X-XSS-Protection"] = "1; mode=block"
     
     return response
+# =====> END - HTTPs enforcement middleware configuration <=====
