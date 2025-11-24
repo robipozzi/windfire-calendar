@@ -1,6 +1,21 @@
 source ../setenv.sh
 source ../commons.sh
 
+main()
+{
+    echo ${blu}"##################################################################"${end}
+    echo ${blu}"############### Windfire Calendar test application ###############"${end}
+    echo ${blu}"##################################################################"${end}
+    echo This script will run the following steps:
+    echo    1. Create a Python Virtual Environment, if does not exist
+    echo    2. Activate the Python Virtual Environment
+    echo    3. Install Python prerequisites, if not already installed
+    echo    4. Run the Windfire Calendar test application
+    echo 
+    source ./createPythonVenv.sh
+    run
+}
+
 # ***** Run Test script for Google Calendar API
 run()
 {
@@ -22,4 +37,4 @@ installCustomPythonModules()
 }
 
 # ***** MAIN EXECUTION
-run
+main

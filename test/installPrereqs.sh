@@ -1,0 +1,48 @@
+source ../setenv.sh
+
+# ***** Main function
+main()
+{
+    echo "Installing Python prerequisites..."
+    installPythonModules
+    echo "Python prerequisites installation complete."
+    echo ""
+    echo "Installing custom Python prerequisites..."
+    installCustomPythonModules $1
+    echo "Custom Python prerequisites installation complete."
+}
+
+# ***** Install Python prerequisites for Google Calendar API
+installPythonModules()
+{
+    pip3 install --upgrade \
+                google-auth-oauthlib==1.1.0 \
+                google-auth-httplib2==0.2.0 \
+                google-api-python-client==2.108.0 \
+                colorama==0.4.6 \
+                fastapi==0.104.1 \
+                uvicorn[standard]==0.24.0 \
+                PyJWT==2.8.0 \
+                pydantic==2.5.0 \
+                python-dateutil==2.9.0.post0 \
+                cryptography==41.0.0
+}
+
+# ***** Install custom Windfire Security Python modules
+installCustomPythonModules()
+{
+    ENVIRONMENT_OPTION=$1
+    PIP_CMD="pip3 install"
+    INSTALL_ARGS=$HOME/dev/windfire-security
+    if [ -n "$ENVIRONMENT_OPTION" ] && [ "$ENVIRONMENT_OPTION" -eq 3 ]; then
+        INSTALL_ARGS=$HOME/dist/client-1.0.0-py3-none-any.whl
+        PIP_CMD="pip3 install $INSTALL_ARGS"
+    else
+        PIP_CMD="pip3 install -e $INSTALL_ARGS"
+    fi
+    echo "Install custom module from $INSTALL_ARGS"
+    $PIP_CMD
+}
+
+# ***** MAIN EXECUTION
+main $1
