@@ -33,7 +33,7 @@ installCustomPythonModules()
 {
     ENVIRONMENT_OPTION=$1
     PIP_CMD="pip3 install"
-    INSTALL_ARGS=$HOME/dev/windfire-security
+    INSTALL_ARGS=$HOME/dev/windfire-security-client
     if [ -n "$ENVIRONMENT_OPTION" ] && [ "$ENVIRONMENT_OPTION" -eq 3 ]; then
         INSTALL_ARGS=$HOME/dist/client-1.0.0-py3-none-any.whl
         PIP_CMD="pip3 install $INSTALL_ARGS"
