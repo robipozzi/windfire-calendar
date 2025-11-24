@@ -19,7 +19,7 @@ from apiRouter import api
 from middlewares import https_enforcement_middleware
 # Initialize logger at the top so it's available everywhere 
 from logger.loggerFactory import logger_factory
-logger = logger_factory.get_logger('main')
+logger = logger_factory.get_logger('calendarApiServer')
 
 # ========== START - VARIABLES SECTION ========== #
 SERVICE_NAME = settings.get('APP_NAME')
@@ -39,67 +39,73 @@ async def lifespan(app: FastAPI):
         logger.error(f"Failed to initialize Windfire Calendar service: {str(e)}")
     yield
     # Add shutdown/cleanup logic here if needed
+# ************************************************************
+# *************** START Initialize FastAPI app ***************
+# ************************************************************
+app = FastAPI(
+    title=SERVICE_NAME,
+    summary="A secured REST API for Google Calendar operations",
+    version="1.0.0",
+    lifespan=lifespan,
+    redirect_slashes=False
+)
 
-def initiate_app():
-    global ENFORCE_HTTPS
-    logger.debug("Windfire Calendar initiate_app() called...")
-    
-    app = FastAPI(
-        title=SERVICE_NAME,
-        summary="A secured REST API for Google Calendar operations",
-        version="1.0.0",
-        lifespan=lifespan,
-        redirect_slashes=False
-    )
-    
-    origins=ALLOWED_HOSTS
-    
+# =======================================================================
+# ================== START - Enable CORS configuration ==================
+# =======================================================================
+origins=ALLOWED_HOSTS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+# =====================================================================
+# ================== END - Enable CORS configuration ==================
+# =====================================================================
+
+# ###########################################################################
+# ################## START - Enable TLS/SSL configuration ###################
+# ###########################################################################
+# Log security configuration on startup
+logger.debug(f"ENFORCE_HTTPS set to: {ENFORCE_HTTPS}")
+if ENFORCE_HTTPS == True:
+    logger.info("🔒 HTTPS enforcement enabled - all HTTP requests will be redirected to HTTPS")
+else:
+    logger.warning("⚠️  HTTPS enforcement disabled - API accessible via HTTP (not recommended for production)")
+
+# Add trusted host middleware if configured
+if ALLOWED_HOSTS and ALLOWED_HOSTS != ['*']:
+    logger.info(f"🛡️  Trusted hosts configured: {ALLOWED_HOSTS}")
     app.add_middleware(
-        CORSMiddleware,
-        allow_origins=origins,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+        TrustedHostMiddleware, 
+        allowed_hosts=ALLOWED_HOSTS)
 
-    # tweak this to see the most efficient size
-    app.add_middleware(GZipMiddleware, minimum_size=100)
+# Custom HTTPS enforcement middleware
+@app.middleware("http")
+async def custom_https_middleware(request: Request, call_next):
+    return await https_enforcement_middleware(request, call_next)
+######################################################################
+################### END - TLS/SSL Configurations ###################
+######################################################################
 
-    ######################################################################
-    ################### START - TLS/SSL Configurations ###################
-    ######################################################################
-    # Log security configuration on startup
-    logger.debug(f"ENFORCE_HTTPS set to: {ENFORCE_HTTPS}")
-    if ENFORCE_HTTPS == True:
-        logger.info("🔒 HTTPS enforcement enabled - all HTTP requests will be redirected to HTTPS")
-    else:
-        logger.warning("⚠️  HTTPS enforcement disabled - API accessible via HTTP (not recommended for production)")
+#app.add_middleware(BaseHTTPMiddleware, dispatch=log_request_middleware)
 
-    # Custom HTTPS enforcement middleware
-    @app.middleware("http")
-    async def custom_https_middleware(request: Request, call_next):
-        return await https_enforcement_middleware(request, call_next)
+#limiter = Limiter(key_func=get_remote_address)
+#app.state.limiter = limiter
 
-    # Add trusted host middleware if configured
-    if ALLOWED_HOSTS and ALLOWED_HOSTS != ['*']:
-        logger.info(f"🛡️  Trusted hosts configured: {ALLOWED_HOSTS}")
-        app.add_middleware(
-            TrustedHostMiddleware, 
-            allowed_hosts=ALLOWED_HOSTS)
-    ######################################################################
-    ################### END - TLS/SSL Configurations ###################
-    ######################################################################
+# tweak this to see the most efficient size
+app.add_middleware(GZipMiddleware, minimum_size=100)
 
-    #app.add_middleware(BaseHTTPMiddleware, dispatch=log_request_middleware)
+# Include API router to enable API endpoints
+app.include_router(api)
+# Root endpoint redirecting to API docs
+@app.get("/", tags=["Root"])
+async def root():
+    return RedirectResponse("/docs")
 
-    #limiter = Limiter(key_func=get_remote_address)
-    #app.state.limiter = limiter
-
-    app.include_router(api)
-    return app
-
-app = initiate_app()
-
+# Exception handlers
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
     return JSONResponse(
@@ -122,15 +128,22 @@ async def global_exception_handler(request: Request, exc: Exception):
         },
     )
 
-@app.get("/", tags=["Root"])
-async def root():
-    return RedirectResponse("/docs")
-
 #################################
 ##### Main program function #####
 #################################
 def main():
     global ENFORCE_HTTPS
+
+    logger.info(f"Configuration loaded successfully.")
+    logger.info(f"  APP_NAME: {settings.get('APP_NAME')}")
+    logger.info(f"  API_HOST: {settings.get('API_HOST')}")
+    logger.info(f"  API_PORT: {settings.get('API_PORT')}")
+    logger.info(f"  SSL_KEYFILE: {settings.get('SSL_KEYFILE')}")
+    logger.info(f"  SSL_CERTFILE: {settings.get('SSL_CERTFILE')}")
+    logger.info(f"  ENFORCE_HTTPS: {settings.get('ENFORCE_HTTPS')}")
+    logger.info(f"  ALLOWED_HOSTS: {settings.get('ALLOWED_HOSTS')}")
+    logger.info(f"  KEYCLOAK_SERVER_URL: {settings.get('KEYCLOAK_SERVER_URL')}")
+    
     logger.info(f"Starting {SERVICE_NAME} server...")
     host=settings.get('API_HOST')
     port=settings.get('API_PORT')
