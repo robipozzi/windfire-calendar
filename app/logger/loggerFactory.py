@@ -51,7 +51,10 @@ class LoggerFactory:
         """Ensure logging is configured and return a logger."""
         self.logger = logging.getLogger(logger_name)
         file_handler = TimedRotatingFileHandler(
-            "windfire-calendar.log", when="midnight", interval=1 / 86400, backupCount=7
+            os.getenv("DEFAULT_LOG_FILE"), 
+            when=os.getenv("DEFAULT_LOG_ROTATION_WHEN"), 
+            interval=1 / 86400, 
+            backupCount=7
         )
         stream_handler = logging.StreamHandler()
         #file_handler.setFormatter(JsonFormatter())
