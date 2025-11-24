@@ -1,6 +1,6 @@
 import subprocess
-import requests
-from colorama import Fore, Style, init
+import requests # pyright: ignore[reportMissingModuleSource]
+from colorama import Fore, Style, init # pyright: ignore[reportMissingModuleSource]
 from typing import Optional
 from datetime import date
 import os
@@ -272,11 +272,11 @@ def main():
     print(Style.BRIGHT + Fore.BLUE + "===> Testing /calendar/events/count/today endpoint <===")
     test_count_events_to_today()
     print("")
-
+    
     print(Style.BRIGHT + Fore.BLUE + "===> Testing /calendar/events/count/range endpoint <===")
     test_count_events_by_range()
     print("")
-
+    
     print(Style.BRIGHT + Fore.BLUE + "===> Testing /calendar/events/upcoming endpoint <===")
     test_get_upcoming_events()
     print("")
