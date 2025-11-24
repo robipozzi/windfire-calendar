@@ -13,7 +13,7 @@ SERVICE_NAME = settings.get('APP_NAME')
 router = APIRouter(prefix="/calendar", tags=["Calendar APIs"])
 
 # Calendar endpoints
-@router.post("/calendar/events/count/year", response_model=EventCountResponse)
+@router.post("/events/count/year", response_model=EventCountResponse)
 async def count_events_by_year(
     request: EventCountRequest,
     current_user: dict = Depends(verify_token)
@@ -43,7 +43,7 @@ async def count_events_by_year(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to count events: {str(e)}")
 
-@router.post("/calendar/events/count/today", response_model=EventCountResponse)
+@router.post("/events/count/today", response_model=EventCountResponse)
 async def count_events_to_today(
     request: EventCountRequest,
     current_user: dict = Depends(verify_token)
@@ -67,7 +67,7 @@ async def count_events_to_today(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to count events: {str(e)}")
 
-@router.post("/calendar/events/count/range", response_model=EventCountResponse)
+@router.post("/events/count/range", response_model=EventCountResponse)
 async def count_events_by_range(
     request: EventCountRequest,
     current_user: dict = Depends(verify_token)
@@ -93,7 +93,7 @@ async def count_events_by_range(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to count events: {str(e)}")
 
-@router.get("/calendar/events/upcoming", response_model=UpcomingEventsResponse)
+@router.get("/events/upcoming", response_model=UpcomingEventsResponse)
 async def get_upcoming_events(current_user: dict = Depends(verify_token)):
     """
     Get the next 10 upcoming calendar events

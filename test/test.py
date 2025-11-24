@@ -27,7 +27,7 @@ elif environment == "prod":
 
 def test_health_endpoint():
     print(Style.BRIGHT + Fore.BLUE + "No Authentication required")
-    url = httpsCalendarServerUrl + "/health"
+    url = httpsCalendarServerUrl + "/v1/monitor/health"
     http_headers = {"Content-Type": "application/json"}
     print(Style.BRIGHT + Fore.BLUE + f"Calling {url} ...")
     try:
@@ -62,7 +62,7 @@ def test_count_events_by_year() -> Optional[dict]:
     """
     if token:
         print(Style.NORMAL + Fore.GREEN + "Authentication token is available, proceeding with POST request...")
-        url = httpsCalendarServerUrl + "/calendar/events/count/year"
+        url = httpsCalendarServerUrl + "/v1/calendar/events/count/year"
         http_headers = {
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json"
@@ -104,7 +104,7 @@ def test_count_events_to_today() -> Optional[dict]:
     """
     if token:
         print(Style.NORMAL + Fore.GREEN + "Authentication token is available, proceeding with POST request...")
-        url = httpsCalendarServerUrl + "/calendar/events/count/today"
+        url = httpsCalendarServerUrl + "/v1/calendar/events/count/today"
         http_headers = {
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json"
@@ -147,7 +147,7 @@ def test_count_events_by_range() -> Optional[dict]:
     """
     if token:
         print(Style.NORMAL + Fore.GREEN + "Authentication token is available, proceeding with POST request...")
-        url = httpsCalendarServerUrl + "/calendar/events/count/range"
+        url = httpsCalendarServerUrl + "/v1/calendar/events/count/range"
         http_headers = {
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json"
@@ -191,7 +191,7 @@ def test_get_upcoming_events() -> Optional[dict]:
     """
     if token:
         print(Style.NORMAL + Fore.GREEN + "Authentication token is available, proceeding with POST request...")
-        url = httpsCalendarServerUrl + "/calendar/events/upcoming"
+        url = httpsCalendarServerUrl + "/v1/calendar/events/upcoming"
         http_headers = {
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json"
@@ -233,7 +233,7 @@ def __test_get_upcoming_events():
     """
     if token:
         print(Style.NORMAL + Fore.GREEN + "Authentication token is available, proceeding with GET request...")
-        url = httpsCalendarServerUrl + "/calendar/events/upcoming"
+        url = httpsCalendarServerUrl + "/v1/calendar/events/upcoming"
         http_headers = {
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json"

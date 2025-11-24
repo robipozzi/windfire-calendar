@@ -1,7 +1,7 @@
 source ../setenv.sh
 source ../commons.sh
 
-PROCESS_TO_KILL=fastapiCalendarService.py
+PROCESS_TO_KILL=calendarApiServer.py
 PID=
 
 # ***** Stop FastAPI server for Authentication Service

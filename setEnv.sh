@@ -12,6 +12,7 @@ coffee3="${coffee} ${coffee} ${coffee}"
 
 ###### Variable section - START
 PYTORCH_VIRTUAL_ENV=windfire-calendar
+PYTORCH_VIRTUAL_ENV_TEST=windfire-calendar-test
 ENVIRONMENT=
 DEFAULT_USERNAME=windfire
 DEFAULT_AUTH_SERVICE_TEST=windfire-calendar-srv
