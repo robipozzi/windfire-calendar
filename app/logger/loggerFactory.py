@@ -2,43 +2,49 @@ import logging
 import json
 from logging.handlers import TimedRotatingFileHandler
 from config.settings import settings
+import os
 
 class LoggerFactory:
     level: int
     logger: logging.Logger
 
     def __init__(self, level=logging.NOTSET):
-        print(f"DEFAULT LOG FILE: {settings.get('DEFAULT_LOG_FILE')}")
-        print(f"DEFAULT LOG BACKUP COUNT: {settings.get('DEFAULT_LOG_BACKUP_COUNT')}")
-        print(f"DEFAULT LOG ROTATION WHEN: {settings.get('DEFAULT_LOG_ROTATION_WHEN')}")
-        print(f"DEFAULT LOG ROTATION INTERVAL: {settings.get('DEFAULT_LOG_ROTATION_INTERVAL')}")
-
-        # If DEFAULT_LOG_LEVEL is set in settings, map it to a logging level constant
+        # If LOG_LEVEL environment variable is set, map it to a logging level constant
+        # If LOG_LEVEL environment variable is not set and DEFAULT_LOG_LEVEL is set in settings,
+        # map DEFAULT_LOG_LEVEL to a logging level constant 
+        # 
+        # Supported levels:
         # DEBUG = 10, INFO = 20, WARNING = 30, ERROR = 40, CRITICAL = 50
+        level_str = ""
+        env_level = os.getenv("LOG_LEVEL")
         default_level = settings.get('DEFAULT_LOG_LEVEL')
-        if default_level is not None:
-            try:
-                if isinstance(default_level, int):
-                    level = default_level
-                else:
-                    level_str = str(default_level).strip().upper()
-                    # support numeric strings
-                    if level_str.isdigit():
-                        level = int(level_str)
-                    else:
-                        level = {
-                            "NOTSET": logging.NOTSET,
-                            "DEBUG": logging.DEBUG,
-                            "INFO": logging.INFO,
-                            "WARNING": logging.WARNING,                            
-                            "ERROR": logging.ERROR,
-                            "CRITICAL": logging.CRITICAL,
+        #print(f"LOG_LEVEL environment variable: {env_level}")
+        #print(f"DEFAULT_LOG_LEVEL from settings: {default_level}")
+        if env_level is not None and env_level != "":
+            #print(f"LOG_LEVEL environment variable set: {env_level}")
+            level_str = env_level.strip()
+        elif default_level is not None and default_level != "":
+            #print(f"LOG_LEVEL environment variable is not set: {env_level}")
+            #print(f"Using DEFAULT_LOG_LEVEL from settings: {default_level}")
+            level_str = default_level.strip()
 
-                        }.get(level_str, level)
-            except Exception:
-                print(f"Invalid DEFAULT_LOG_LEVEL '{default_level}', using {level}")
+        try:
+            #print(f"Parsing log level from string: {level_str}")
+            if level_str.isdigit():
+                level = int(level_str)
+            else:
+                level = {
+                        "NOTSET": logging.NOTSET,
+                        "DEBUG": logging.DEBUG,
+                        "INFO": logging.INFO,
+                        "WARNING": logging.WARNING,                            
+                        "ERROR": logging.ERROR,
+                        "CRITICAL": logging.CRITICAL,
+                    }.get(level_str, level)
+        except Exception:
+            print(f"Invalid DEFAULT_LOG_LEVEL '{default_level}', using {level}")
+            pass
 
-        print(f"level: {level}")
         self.level = level
     
     def get_logger(self, logger_name):
@@ -52,7 +58,7 @@ class LoggerFactory:
         file_handler.setFormatter(ColorFormatter("%(asctime)s - %(levelname)s - %(name)s - %(message)s"))
         stream_handler.setFormatter(ColorFormatter("%(asctime)s - %(levelname)s - %(name)s - %(message)s"))
         self.logger.handlers = [file_handler]
-        # ****** Check whether LOG_LEVEL environment variable is set ******
+        #print(f"Logger level set to: {self.level} for logger '{logger_name}'")
         self.logger.setLevel(self.level)
         return self.logger
         

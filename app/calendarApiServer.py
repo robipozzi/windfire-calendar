@@ -1,17 +1,16 @@
 import os
-import uvicorn
+import uvicorn # pyright: ignore[reportMissingImports]
 from contextlib import asynccontextmanager
 from datetime import datetime, UTC
-from fastapi import FastAPI
-from starlette.middleware.trustedhost import TrustedHostMiddleware
-from starlette.middleware.base import BaseHTTPMiddleware
-from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse
-from fastapi.responses import JSONResponse
-from fastapi.requests import Request
-from fastapi import HTTPException
-from fastapi import FastAPI
+from fastapi import FastAPI # pyright: ignore[reportMissingImports]
+from starlette.middleware.trustedhost import TrustedHostMiddleware # pyright: ignore[reportMissingImports]
+from starlette.middleware.base import BaseHTTPMiddleware # pyright: ignore[reportMissingImports]
+from fastapi.middleware.gzip import GZipMiddleware # pyright: ignore[reportMissingImports]
+from fastapi.middleware.cors import CORSMiddleware # pyright: ignore[reportMissingImports]
+from fastapi.responses import RedirectResponse # pyright: ignore[reportMissingImports]
+from fastapi.responses import JSONResponse # pyright: ignore[reportMissingImports]
+from fastapi.requests import Request # pyright: ignore[reportMissingImports]
+from fastapi import HTTPException # pyright: ignore[reportMissingImports]
 #from slowapi import Limiter
 #from slowapi.util import get_remote_address
 from config.settings import settings
@@ -39,7 +38,7 @@ async def lifespan(app: FastAPI):
         logger.error(f"Failed to initialize Windfire Calendar service: {str(e)}")
     yield
     # Add shutdown/cleanup logic here if needed
-    
+
 # ************************************************************
 # *************** START Initialize FastAPI app ***************
 # ************************************************************
@@ -128,6 +127,9 @@ async def global_exception_handler(request: Request, exc: Exception):
             "path": request.url.path,
         },
     )
+# **********************************************************
+# *************** END Initialize FastAPI app ***************
+# **********************************************************
 
 #################################
 ##### Main program function #####
