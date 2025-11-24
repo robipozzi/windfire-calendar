@@ -12,13 +12,21 @@ main()
         exit 1
     fi
 
-    # Activate the virtual environment
-    echo "${blu}PYTORCH_VIRTUAL_ENV${end} is set to ${blu}$PYTORCH_VIRTUAL_ENV${end}, proceeding to activate ..."
-    echo Activating Python Virtual Environment with command ${blu}source $PYTORCH_VIRTUAL_ENV/bin/activate${end}...
-    source "$PYTORCH_VIRTUAL_ENV/bin/activate"
-    echo ${grn}Python Virtual Environment activated${end}
-    echo 
-    source ./installPrereqs.sh $1
+    # Verify $PYTORCH_VIRTUAL_ENV directory exists (check parent and current dir)
+    if [ -d $PYTORCH_VIRTUAL_ENV ]; then
+        echo "${blu}Found $PYTORCH_VIRTUAL_ENV at${end} ${blu}$PYTORCH_VIRTUAL_ENV${end}"
+        # Activate the virtual environment
+        echo "${blu}PYTORCH_VIRTUAL_ENV${end} is set to ${blu}$PYTORCH_VIRTUAL_ENV${end}, proceeding to activate ..."
+        echo Activating Python Virtual Environment with command ${blu}source $PYTORCH_VIRTUAL_ENV/bin/activate${end}...
+        source "$PYTORCH_VIRTUAL_ENV/bin/activate"
+        echo ${grn}Python Virtual Environment activated${end}
+        echo 
+        source ./installPrereqs.sh $1
+    else
+        echo "${mag}Directory specified by PYTORCH_VIRTUAL_ENV not found:${end} ${mag}$PYTORCH_VIRTUAL_ENV${end}"
+        echo "${mag}Exiting ...${end}"
+        exit 1
+    fi
 }
 
 # ***** MAIN EXECUTION

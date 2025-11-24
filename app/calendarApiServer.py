@@ -39,6 +39,7 @@ async def lifespan(app: FastAPI):
         logger.error(f"Failed to initialize Windfire Calendar service: {str(e)}")
     yield
     # Add shutdown/cleanup logic here if needed
+    
 # ************************************************************
 # *************** START Initialize FastAPI app ***************
 # ************************************************************

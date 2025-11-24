@@ -24,7 +24,8 @@ run()
     inputKeycloakClientSecret
     ENVIRONMENT=$ENVIRONMENT \
     KEYCLOAK_CLIENT_SECRET=$KEYCLOAK_CLIENT_SECRET \
-    python3 fastapiCalendarService.py
+    python3 calendarApiServer.py
+    #python3 fastapiCalendarService.py
 }
 
 # ***** MAIN EXECUTION
