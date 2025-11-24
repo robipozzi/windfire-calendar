@@ -51,7 +51,7 @@
           - "--exclude=__pycache__"
           - "--exclude=windfire-calendar"
           - "--exclude=.env_PLACEHOLDER"
-          - "--exclude=windfire-calendar.log*"
+          - "--exclude=windfire-calendar.log"
 
     # Task 4: Copy setenv.sh to remote server
     - name: Copy setenv.sh to "{{ remote_windfire_calendar_dir }}" directory on remote server
