@@ -1,12 +1,12 @@
 import os.path
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
+from google.auth.transport.requests import Request # pyright: ignore[reportMissingImports]
+from google.oauth2.credentials import Credentials # pyright: ignore[reportMissingImports]
+from google_auth_oauthlib.flow import InstalledAppFlow # pyright: ignore[reportMissingImports]
+from googleapiclient.discovery import build # pyright: ignore[reportMissingImports]
+from googleapiclient.errors import HttpError # pyright: ignore[reportMissingImports]
 from utils import dateMgr
 from datetime import date
-from colorama import init
+from colorama import init # pyright: ignore[reportMissingModuleSource]
 # Initialize logger at the top so it's available everywhere 
 from logger.loggerFactory import logger_factory
 logger = logger_factory.get_logger('calendarService')

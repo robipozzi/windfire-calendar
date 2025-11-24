@@ -1,4 +1,4 @@
-from colorama import Fore, Style, init
+from colorama import Fore, Style, init # pyright: ignore[reportMissingModuleSource]
 from handler import actionHandler
 import os
 # Initialize logger at the top so it's available everywhere 

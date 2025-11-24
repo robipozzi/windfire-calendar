@@ -1,7 +1,7 @@
 from datetime import date
 from utils import dateMgr
 from services.calendarService import calendarSrv
-from colorama import Fore, Style, init
+from colorama import Fore, Style, init # pyright: ignore[reportMissingModuleSource]
 # Initialize logger at the top so it's available everywhere 
 from logger.loggerFactory import logger_factory
 logger = logger_factory.get_logger('actionHandler')

@@ -1,10 +1,10 @@
 import os
-import uvicorn
-from fastapi import FastAPI, HTTPException, Depends, status, Request
-from fastapi.responses import RedirectResponse
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from pydantic import BaseModel, Field
+import uvicorn # pyright: ignore[reportMissingImports]
+from fastapi import FastAPI, HTTPException, Depends, status, Request # pyright: ignore[reportMissingImports]
+from fastapi.responses import RedirectResponse # pyright: ignore[reportMissingImports]
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials # pyright: ignore[reportMissingImports]
+from fastapi.middleware.trustedhost import TrustedHostMiddleware # pyright: ignore[reportMissingImports]
+from pydantic import BaseModel, Field # pyright: ignore[reportMissingImports]
 from datetime import date
 from typing import Optional, List
 from services.calendarService import calendarSrv

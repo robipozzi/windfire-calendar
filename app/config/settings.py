@@ -1,6 +1,6 @@
 import os
 from typing import Any
-from dotenv import load_dotenv
+from dotenv import load_dotenv # pyright: ignore[reportMissingImports]
 
 class Settings():
     """Read and manage configuration from .env file"""

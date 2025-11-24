@@ -1,5 +1,5 @@
-from fastapi.requests import Request
-from fastapi.responses import RedirectResponse
+from fastapi.requests import Request # pyright: ignore[reportMissingImports]
+from fastapi.responses import RedirectResponse # pyright: ignore[reportMissingImports]
 from config.settings import settings
 from apiRouter import api
 # Initialize logger at the top so it's available everywhere 
