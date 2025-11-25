@@ -8,3 +8,5 @@ token.json
 .DS_Store
 windfire-calendar.log*
 test/windfire-calendar-test/
+app/windfire-security-client.log*
+test/windfire-security-client.log*

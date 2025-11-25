@@ -2,7 +2,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials # pyright:
 from fastapi import HTTPException, status, Depends # pyright: ignore[reportMissingImports]
 from config.settings import settings
 # Import the AuthClient instance from the client package
-from client.authClient import authClient
+from client.authClient import authClient 
 # Initialize logger at the top so it's available everywhere 
 from logger.loggerFactory import logger_factory
 logger = logger_factory.get_logger('commons')
