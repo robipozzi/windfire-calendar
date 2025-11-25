@@ -100,7 +100,7 @@
     # Task 6: Copy custom Python module to remote server
     - name: Copy custom Python module directory to "{{ remote_home_dir }}" directory on remote server
       ansible.builtin.synchronize:
-        src: "../../../../windfire-security/dist"
+        src: "../../../../windfire-security-client/dist"
         dest: "{{ remote_home_dir }}"
 
     # Task 7: Create Python virtual environment
