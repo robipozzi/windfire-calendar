@@ -1,5 +1,5 @@
-from datetime import date, datetime, time
 import dateutil.parser # pyright: ignore[reportMissingModuleSource]
+from datetime import date, datetime, time
 from colorama import Fore, init # pyright: ignore[reportMissingModuleSource]
 # Initialize logger at the top so it's available everywhere 
 from logger.loggerFactory import logger_factory

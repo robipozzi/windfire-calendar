@@ -1,5 +1,5 @@
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials # pyright: ignore[reportMissingImports]
 from fastapi import HTTPException, status, Depends # pyright: ignore[reportMissingImports]
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials # pyright: ignore[reportMissingImports]
 from config.settings import settings
 # Import the AuthClient instance from the client package
 from client.authClient import authClient 

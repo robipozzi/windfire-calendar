@@ -2,20 +2,18 @@ import os
 import uvicorn # pyright: ignore[reportMissingImports]
 from contextlib import asynccontextmanager
 from datetime import datetime, UTC
-from fastapi import FastAPI # pyright: ignore[reportMissingImports]
-from starlette.middleware.trustedhost import TrustedHostMiddleware # pyright: ignore[reportMissingImports]
-from starlette.middleware.base import BaseHTTPMiddleware # pyright: ignore[reportMissingImports]
+from fastapi import FastAPI, HTTPException # pyright: ignore[reportMissingImports]
+from fastapi.requests import Request # pyright: ignore[reportMissingImports]
+from fastapi.responses import JSONResponse, RedirectResponse # pyright: ignore[reportMissingImports]
 from fastapi.middleware.gzip import GZipMiddleware # pyright: ignore[reportMissingImports]
 from fastapi.middleware.cors import CORSMiddleware # pyright: ignore[reportMissingImports]
-from fastapi.responses import RedirectResponse # pyright: ignore[reportMissingImports]
-from fastapi.responses import JSONResponse # pyright: ignore[reportMissingImports]
-from fastapi.requests import Request # pyright: ignore[reportMissingImports]
-from fastapi import HTTPException # pyright: ignore[reportMissingImports]
+from starlette.middleware.trustedhost import TrustedHostMiddleware # pyright: ignore[reportMissingImports]
+from starlette.middleware.base import BaseHTTPMiddleware # pyright: ignore[reportMissingImports]
 #from slowapi import Limiter
 #from slowapi.util import get_remote_address
-from config.settings import settings
 from apiRouter import api
 from middlewares import https_enforcement_middleware
+from config.settings import settings
 # Initialize logger at the top so it's available everywhere 
 from logger.loggerFactory import logger_factory
 logger = logger_factory.get_logger('calendarApiServer')

@@ -1,4 +1,4 @@
-import requests
+import requests # pyright: ignore[reportMissingModuleSource]
 from datetime import date
 from typing import Optional
 

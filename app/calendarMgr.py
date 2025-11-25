@@ -1,6 +1,6 @@
-from colorama import Fore, Style, init # pyright: ignore[reportMissingModuleSource]
-from handler import actionHandler
 import os
+from handler import actionHandler
+from colorama import Fore, Style, init # pyright: ignore[reportMissingModuleSource]
 # Initialize logger at the top so it's available everywhere 
 from logger.loggerFactory import logger_factory
 logger = logger_factory.get_logger('calendarMgr')

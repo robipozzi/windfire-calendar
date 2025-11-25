@@ -1,9 +1,9 @@
+import os
 import subprocess
 import requests # pyright: ignore[reportMissingModuleSource]
 from colorama import Fore, Style, init # pyright: ignore[reportMissingModuleSource]
 from typing import Optional
 from datetime import date
-import os
 # Import the AuthClient instance from the client package
 from client.authClient import authClient
 
