@@ -5,9 +5,9 @@ from datetime import datetime, UTC
 from fastapi import FastAPI, HTTPException # pyright: ignore[reportMissingImports]
 from fastapi.requests import Request # pyright: ignore[reportMissingImports]
 from fastapi.responses import JSONResponse, RedirectResponse # pyright: ignore[reportMissingImports]
-from fastapi.middleware.gzip import GZipMiddleware # pyright: ignore[reportMissingImports]
 from fastapi.middleware.cors import CORSMiddleware # pyright: ignore[reportMissingImports]
 from starlette.middleware.trustedhost import TrustedHostMiddleware # pyright: ignore[reportMissingImports]
+from fastapi.middleware.gzip import GZipMiddleware # pyright: ignore[reportMissingImports]
 from starlette.middleware.base import BaseHTTPMiddleware # pyright: ignore[reportMissingImports]
 #from slowapi import Limiter
 #from slowapi.util import get_remote_address
