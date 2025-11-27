@@ -9,4 +9,5 @@ token.json
 windfire-calendar.log*
 test/windfire-calendar-test/
 app/windfire-security-client.log*
+app/logs/windfire-security-client.log*
 test/windfire-security-client.log*

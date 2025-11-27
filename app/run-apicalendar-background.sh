@@ -19,7 +19,7 @@ main()
 run()
 {
     inputKeycloakClientSecret
-    ./start-apicalendar.sh 3 > windfire-calendar.log 2>&1 &
+    ./start-apicalendar.sh 3 > logs/windfire-calendar.log 2>&1 &
 }
 
 # ***** MAIN EXECUTION
