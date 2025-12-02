@@ -85,9 +85,9 @@ parseArguments() {
 # ***** HELP FUNCTION
 printHelp() {
     cat << EOF
-╔════════════════════════════════════════════════════════════════╗
-║    Windfire Calendar FastAPI Server - Startup Script          ║
-╚════════════════════════════════════════════════════════════════╝
+╔═════════════════════════════════════════════════════════╗
+║    Windfire Calendar FastAPI Server - Startup Script    ║
+╚═════════════════════════════════════════════════════════╝
 
 USAGE:
     ./start-apicalendar.sh [OPTION] [ENVIRONMENT]
