@@ -1,6 +1,8 @@
 source ../setenv.sh
 
-# ***** Main function
+# ***** Install Python modules prerequisites
+
+# ===== MAIN FUNCTION =====
 main()
 {
     echo "Installing Python prerequisites..."
@@ -12,7 +14,7 @@ main()
     echo "Custom Python prerequisites installation complete."
 }
 
-# ***** Install Python prerequisites for Google Calendar API
+# ===== Install Python prerequisites for Google Calendar API =====
 installPythonModules()
 {
     pip3 install --upgrade \
@@ -28,7 +30,7 @@ installPythonModules()
                 cryptography==41.0.0
 }
 
-# ***** Install custom Windfire Security Python modules
+# ===== Install custom Windfire Security Python modules =====
 installCustomPythonModules()
 {
     ENVIRONMENT_OPTION=$1
@@ -44,5 +46,5 @@ installCustomPythonModules()
     $PIP_CMD
 }
 
-# ***** MAIN EXECUTION
+# ===== EXECUTION =====
 main $1

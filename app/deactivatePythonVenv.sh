@@ -1,24 +1,26 @@
 source ../setenv.sh
 
 # ***** Deactivate Python Virtual environment
+
+# ===== MAIN FUNCTION =====
 main()
 {
     # Check if the directory exists
-    echo Check if Python virtual environment ${blu}$PYTORCH_VIRTUAL_ENV${end} exists
+    echo -e "Check if Python virtual environment ${BLU}$PYTORCH_VIRTUAL_ENV${RESET} exists"
     if [ -d "$PYTORCH_VIRTUAL_ENV" ]; then
-        echo "Python virtual environment ${blu}$PYTORCH_VIRTUAL_ENV${end} exists, deactivating ..."
+        echo -e "Python virtual environment ${BLU}$PYTORCH_VIRTUAL_ENV${RESET} exists, deactivating ..."
         deactivate
     else
-        echo "Python virtual environment ${blu}$PYTORCH_VIRTUAL_ENV${end} does not exist"
+        echo -e "Python virtual environment ${BLU}$PYTORCH_VIRTUAL_ENV${RESET} does not exist"
     fi
 }
 
-# ***** Deactivate Python Virtual environment
+# ===== Deactivate Python Virtual environment =====
 deactivate()
 {
-    echo ${grn}To deactivate Python3 Virtual Environment, copy the following command on a shell${end}
-    echo ${blu}deactivate${end}
+    echo -e "${GREEN}To deactivate Python3 Virtual Environment, copy the following command on a shell${RESET}"
+    echo -e "${BLU}deactivate${RESET}"
 }
 
-# ***** MAIN EXECUTION
+# ===== EXECUTION =====
 main

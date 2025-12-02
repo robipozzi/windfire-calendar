@@ -1,3 +1,5 @@
+source ../setenv.sh
+
 ###### Function section - START
 AUTH_SERVICE_TEST=$DEFAULT_AUTH_SERVICE_TEST
 # Function to select environment where program should run
@@ -7,10 +9,10 @@ printSelectEnvironment()
     if [[ -n "${ENVIRONMENT_SELECTION}" ]]; then
         echo 
     else
-        echo ${blu}Select environment : ${end}
-        echo "${blu}1. Development${end}"
-        echo "${blu}2. Test${end}"
-        echo "${blu}3. Production${end}"
+        echo -e "${BLU}Select environment : ${RESET}"
+        echo -e "${BLU}1. Development${RESET}"
+        echo -e "${BLU}2. Test${RESET}"
+        echo -e "${BLU}3. Production${RESET}"
         read ENVIRONMENT_SELECTION
     fi
 	setEnvironment
@@ -25,7 +27,7 @@ setEnvironment()
 			;;
         3)  ENVIRONMENT=prod
             ;;
-		*) 	printf "\n${red}No valid option selected${end}\n"
+		*) 	echo -e "${RED}No valid option selected${RESET}"
 			printSelectEnvironment
 			;;
 	esac
@@ -66,10 +68,10 @@ inputKeycloakClientSecret() {
         echo "KEYCLOAK_CLIENT_SECRET set"
     else
         while true; do
-            read -s -p ${blu}"Enter Keycloak Client Secret for $AUTH_SERVICE_TEST service: "${end} KEYCLOAK_CLIENT_SECRET
+            read -s -p "${BLU}Enter Keycloak Client Secret for $AUTH_SERVICE_TEST service: ${END}" KEYCLOAK_CLIENT_SECRET
             echo
             if [[ -z "$KEYCLOAK_CLIENT_SECRET" ]]; then
-                echo ${red}"Error: KEYCLOAK_CLIENT_SECRET cannot be empty. Please try again."${end}
+                echo -e "${RED}Error: KEYCLOAK_CLIENT_SECRET cannot be empty. Please try again.${RESET}"
             else
                 export KEYCLOAK_CLIENT_SECRET
                 break

@@ -1,22 +1,21 @@
+#!/bin/bash
+
+# ***** Start FastAPI server for Windfire Calendar API (wraps Google Calendar API)
+
 source ../setenv.sh
 source ../commons.sh
 
+# ===== DEFAULT VALUES =====
 LOG_LEVEL=
 RUN_ENVIRONMENT=
-# ***** Start FastAPI server for Windfire Calendar API (wraps Google Calendar API)
 
-# ***** MAIN FUNCTION
+# ===== MAIN FUNCTION =====
 main() {
-    echo ${blu}"################################################################"${end}
-    echo ${blu}"############### Windfire Calendar FastAPI server ###############"${end}
-    echo ${blu}"################################################################"${end}
-    echo ""
-    echo "This script will run the following steps:"
-    echo "  1. Create a Python Virtual Environment, if it does not exist"
-    echo "  2. Activate the Python Virtual Environment"
-    echo "  3. Install Python prerequisites, if not already installed"
-    echo "  4. Run the Windfire Calendar FastAPI server"
-    echo ""
+    # Display header
+    echo -e "${BLU}################################################################${RESET}"
+    echo -e "${BLU}############### Windfire Calendar FastAPI server ###############${RESET}"
+    echo -e "${BLU}################################################################${RESET}"
+    echo 
     
     # Invoke parseArguments() function to parse and validate arguments
     parseArguments "$@"
@@ -28,18 +27,23 @@ main() {
     run "$RUN_ENVIRONMENT"
 }
 
+# ===== SERVER RUN FUNCTION =====
 run()
 {
     printSelectEnvironment $1
-    echo ${cyn}Running calendar service API in environment : $ENVIRONMENT${end}
+    echo -e "${YELLOW}Running calendar service API in environment : $ENVIRONMENT${RESET}"
     inputKeycloakClientSecret
+
+    # Run Calendar Service
+    echo -e "${YELLOW}Starting server with: LOG_LEVEL=${LOG_LEVEL} ENVIRONMENT=$ENVIRONMENT KEYCLOAK_CLIENT_SECRET={***} python3 calendarApiServer.py${RESET}"
+
     LOG_LEVEL=${LOG_LEVEL} \
     ENVIRONMENT=$ENVIRONMENT \
     KEYCLOAK_CLIENT_SECRET=$KEYCLOAK_CLIENT_SECRET \
     python3 calendarApiServer.py
 }
 
-# ***** ARGUMENT PARSING FUNCTION
+# ===== ARGUMENT PARSING FUNCTION =====
 parseArguments() {
     echo "Parsing arguments..."
     local arg="$1"
@@ -82,53 +86,58 @@ parseArguments() {
     return 0
 }
 
-# ***** HELP FUNCTION
+# ===== HELP FUNCTION =====
 printHelp() {
-    cat << EOF
-╔═════════════════════════════════════════════════════════╗
-║    Windfire Calendar FastAPI Server - Startup Script    ║
-╚═════════════════════════════════════════════════════════╝
-
-USAGE:
-    ./start-apicalendar.sh [OPTION] [ENVIRONMENT]
-
-DESCRIPTION:
-    Starts the Windfire Calendar FastAPI server that wraps the Google Calendar API.
-    This script handles Python virtual environment setup and server initialization.
-
-OPTIONS:
-    -h, --help              Show this help message and exit
-    -v, --version           Show version information
-    --LOG_LEVEL             Set the logging level (e.g., DEBUG, INFO, WARNING, ERROR, CRITICAL)
-
-EXAMPLES:
-    ./start-apicalendar.sh --LOG_LEVEL ERROR
-        Set logging level to ERROR
-
-    ./start-apicalendar.sh --help
-        Display this help message
-
-WHAT THIS SCRIPT DOES:
-    1. Create a Python Virtual Environment (if it doesn't exist)
-    2. Activate the Python Virtual Environment
-    3. Install Python prerequisites (if not already installed)
-    4. Run the Windfire Calendar FastAPI server
-
-ENVIRONMENT VARIABLES REQUIRED:
-    KEYCLOAK_CLIENT_SECRET  Keycloak OAuth client secret (prompted if not set)
-
-EXIT CODES:
-    0   Success
-    1   Invalid arguments
-    2   Missing environment specification
-
-NOTES:
-    - The script sources '../setenv.sh' and '../commons.sh' for configuration
-    - Python 3 is required
-    - Virtual environment created in './venv' directory
-
-EOF
+    # Display help information
+    echo -e "${BOLD}╔═════════════════════════════════════════════════════════╗${RESET}"
+    echo -e "${BOLD}║    Windfire Calendar FastAPI Server - Startup Script    ║${RESET}"
+    echo -e "${BOLD}╚═════════════════════════════════════════════════════════╝${RESET}"
+    echo
+    echo -e "${BOLD}DESCRIPTION:${RESET}"
+    echo -e "Starts the Windfire Calendar FastAPI server that wraps the Google Calendar API."
+    echo -e "The script handles Python virtual environment setup and server initialization."
+    echo
+    echo -e "The script will run the following steps:"
+    echo -e "  1. Create a Python Virtual Environment, if it does not exist"
+    echo -e "  2. Activate the Python Virtual Environment"
+    echo -e "  3. Install Python prerequisites, if not already installed"
+    echo -e "  4. Run the Windfire Calendar FastAPI server"
+    echo
+    echo -e "${BOLD}USAGE:${RESET}"
+    echo -e "    ./start-apicalendar.sh [OPTIONS] [ENVIRONMENT]"
+    echo
+    echo -e "${BOLD}OPTIONS:${RESET}"
+    echo -e "-v, --version           Show version information"
+    echo
+    echo -e "--LOG_LEVEL LEVEL       Set the logging level (e.g., DEBUG, INFO, WARNING, ERROR, CRITICAL)"
+    echo
+    echo -e "-h, --help              Display this help message and exit"
+    echo
+    echo -e "${BOLD}EXAMPLES:${RESET}"
+    echo -e "./start-apicalendar.sh --LOG_LEVEL ERROR"
+    echo -e "    Set logging level to ERROR"
+    echo
+    echo -e "./start-apicalendar.sh --help"
+    echo -e "    Display this help message"
+    echo
+    echo -e "${BOLD}WHAT THIS SCRIPT DOES:${RESET}"
+    echo -e "1. Create a Python Virtual Environment (if it doesn't exist)"
+    echo -e "2. Activate the Python Virtual Environment"
+    echo -e "3. Install Python prerequisites (if not already installed)"
+    echo -e "4. Run the Windfire Calendar FastAPI server"
+    echo
+    echo -e "${BOLD}ENVIRONMENT VARIABLES REQUIRED:${RESET}"
+    echo -e "   KEYCLOAK_CLIENT_SECRET  Keycloak OAuth client secret (prompted if not set)"
+    echo 
+    echo -e "${BOLD}EXIT CODES:${RESET}"
+    echo -e "   0   Success"
+    echo -e "   1   Invalid arguments"
+    echo -e "   2   Missing environment specification"
+    echo
+    echo -e "${BOLD}NOTES:${RESET}"
+    echo -e "   - The script sources '../setenv.sh' and '../commons.sh' for configuration"
+    echo -e "   - Python 3 is required"
 }
 
-# ***** MAIN EXECUTION
+# ===== EXECUTION =====
 main "$@"
