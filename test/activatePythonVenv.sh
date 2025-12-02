@@ -1,33 +1,34 @@
 source ../setenv.sh
 
 # ***** Activate Python Virtual environment
+
+# ===== MAIN FUNCTION =====
 main()
 {
-    echo ${blu}"###########################################################"${end}
-    echo ${blu}"########## Python Virtual Environment activation ##########"${end}
-    echo ${blu}"###########################################################"${end}
+    echo -e "${BLU}###########################################################${RESET}"
+    echo -e "${BLU}########## Python Virtual Environment activation ##########${RESET}"
+    echo -e "${BLU}###########################################################${RESET}"
     # Ensure the environment variable is set
     if [ -z "$PYTORCH_VIRTUAL_ENV_TEST" ]; then
-        echo "${mag}PYTORCH_VIRTUAL_ENV_TEST${end} is not set"
+        echo -e "${MAGENTA}PYTORCH_VIRTUAL_ENV_TEST${RESET} is not set"
         exit 1
     fi
 
     # Verify $PYTORCH_VIRTUAL_ENV_TEST directory exists (check parent and current dir)
     if [ -d $PYTORCH_VIRTUAL_ENV_TEST ]; then
-        echo "${blu}Found $PYTORCH_VIRTUAL_ENV_TEST at${end} ${blu}$PYTORCH_VIRTUAL_ENV_TEST${end}"
+        echo -e "${BLU}Found $PYTORCH_VIRTUAL_ENV_TEST at${RESET} ${BLU}$PYTORCH_VIRTUAL_ENV_TEST${RESET}"
         # Activate the virtual environment
-        echo "${blu}PYTORCH_VIRTUAL_ENV_TEST${end} is set to ${blu}$PYTORCH_VIRTUAL_ENV_TEST${end}, proceeding to activate ..."
-        echo Activating Python Virtual Environment with command ${blu}source $PYTORCH_VIRTUAL_ENV_TEST/bin/activate${end}...
+        echo -e "${BLU}PYTORCH_VIRTUAL_ENV_TEST${RESET} is set to ${BLU}$PYTORCH_VIRTUAL_ENV_TEST${RESET}, proceeding to activate ..."
+        echo -e "Activating Python Virtual Environment with command ${BLU}source $PYTORCH_VIRTUAL_ENV_TEST/bin/activate${RESET}..."
         source "$PYTORCH_VIRTUAL_ENV_TEST/bin/activate"
-        echo ${grn}Python Virtual Environment activated${end}
+        echo -e "${GREEN}Python Virtual Environment activated${RESET}"
         echo 
-        source ./installPrereqs.sh $1
     else
-        echo "${mag}Directory specified by PYTORCH_VIRTUAL_ENV_TEST not found:${end} ${mag}$PYTORCH_VIRTUAL_ENV_TEST${end}"
-        echo "${mag}Exiting ...${end}"
+        echo -e "${MAGENTA}Directory specified by PYTORCH_VIRTUAL_ENV_TEST not found:${RESET} ${MAGENTA}$PYTORCH_VIRTUAL_ENV_TEST${RESET}"
+        echo -e "${MAGENTA}Exiting ...${RESET}"
         exit 1
     fi
 }
 
-# ***** MAIN EXECUTION
+# ===== EXECUTION =====
 main $1

@@ -1,36 +1,48 @@
 source ../setenv.sh
 
 # ***** Create Python Virtual environment
+
+# ===== MAIN FUNCTION =====
 main()
 {
-    echo ${blu}"#########################################################"${end}
-    echo ${blu}"########## Python Virtual Environment creation ##########"${end}
-    echo ${blu}"#########################################################"${end}
+    echo -e "${BLU}#########################################################${RESET}"
+    echo -e "${BLU}########## Python Virtual Environment creation ##########${RESET}"
+    echo -e "${BLU}#########################################################${RESET}"
     # Check if the directory exists
-    echo Check if Python virtual environment ${blu}$PYTORCH_VIRTUAL_ENV_TEST${end} exists
+    echo -e "Check if Python virtual environment ${BLU}$PYTORCH_VIRTUAL_ENV_TEST${RESET} exists"
     if [ -d "$PYTORCH_VIRTUAL_ENV_TEST" ]; then
-        echo "Python virtual environment ${blu}$PYTORCH_VIRTUAL_ENV_TEST${end} exists, activating ..."
+        echo -e "Python virtual environment ${BLU}$PYTORCH_VIRTUAL_ENV_TEST${RESET} exists, activating ..."
         echo
         activate $1
     else
-        echo "${mag}Python virtual environment $PYTORCH_VIRTUAL_ENV_TEST does not exist, creating ..."${end}
+        echo -e "${MAGENTA}Python virtual environment $PYTORCH_VIRTUAL_ENV_TEST does not exist, creating ...${RESET}"
         echo
         create
         echo
-        activate $1
+        activate
+        echo
+        installPrereqs $1
     fi
 }
 
+# ===== CREATE PYTHON VIRTUAL ENV FUNCTION =====
 create()
 {
     echo Creating Python Virtual Environment ...
     python3 -m venv $PYTORCH_VIRTUAL_ENV_TEST
-    echo ${grn}Python Virtual Environment created${end}
+    echo -e "${GREEN}Python Virtual Environment created${RESET}"
 }
 
+# ===== ACTIVATE PYTHON VIRTUAL ENV FUNCTION =====
 activate()
 {
-    source ./activatePythonVenv.sh $1
+    source ./activatePythonVenv.sh
+}
+
+# ===== INSTALL PYTHON PREREQUISITE MODULES FUNCTION =====
+installPrereqs()
+{
+    source ./installPrereqs.sh $1
 }
 
 # ***** MAIN EXECUTION

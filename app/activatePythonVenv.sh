@@ -22,8 +22,7 @@ main()
         echo -e "Activating Python Virtual Environment with command ${BLU}source $PYTORCH_VIRTUAL_ENV/bin/activate${RESET}..."
         source "$PYTORCH_VIRTUAL_ENV/bin/activate"
         echo -e "${GREEN}Python Virtual Environment activated${RESET}"
-        echo 
-        source ./installPrereqs.sh $1
+        echo
     else
         echo -e "${MAGENTA}Directory specified by PYTORCH_VIRTUAL_ENV not found:${RESET} ${MAGENTA}$PYTORCH_VIRTUAL_ENV${RESET}"
         echo -e "${MAGENTA}Exiting ...${RESET}"

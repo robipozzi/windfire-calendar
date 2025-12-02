@@ -1,6 +1,9 @@
 source ../setenv.sh
 source ../commons.sh
 
+# ***** Run Windfire Calendar test application
+
+# ===== MAIN FUNCTION =====
 main()
 {
     echo ${blu}"##################################################################"${end}
@@ -16,7 +19,7 @@ main()
     run
 }
 
-# ***** Run Test script for Google Calendar API
+# ===== TEST APPLICATION RUN FUNCTION =====
 run()
 {
     printSelectEnvironment $1
@@ -30,11 +33,11 @@ run()
     python3 test.py
 }
 
-# ***** Install custom Windfire Security Python modules
+# ===== INSTALL CUSTOM Windfire Security PYTHON MODULES PREREQUISITES FUNCTION =====
 installCustomPythonModules()
 {
     pip3 install -e $HOME/dev/windfire-security
 }
 
-# ***** MAIN EXECUTION
+# ===== EXECUTION =====
 main

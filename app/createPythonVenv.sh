@@ -13,15 +13,15 @@ main()
     if [ -d "$PYTORCH_VIRTUAL_ENV" ]; then
         echo -e "Python virtual environment ${BLU}$PYTORCH_VIRTUAL_ENV${RESET} exists, activating ..."
         echo
-        activate $1
+        activate
     else
         echo -e "${MAGENTA}Python virtual environment $PYTORCH_VIRTUAL_ENV does not exist, creating ...${RESET}"
         echo
         create
         echo
-        activate $1
-        #echo
-        #installPrereqs
+        activate
+        echo
+        installPrereqs $1
     fi
 }
 
@@ -36,7 +36,13 @@ create()
 # ===== ACTIVATE PYTHON VIRTUAL ENV FUNCTION =====
 activate()
 {
-    source ./activatePythonVenv.sh $1
+    source ./activatePythonVenv.sh
+}
+
+# ===== INSTALL PYTHON PREREQUISITE MODULES FUNCTION =====
+installPrereqs()
+{
+    source ./installPrereqs.sh $1
 }
 
 # ===== EXECUTION =====
