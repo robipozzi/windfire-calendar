@@ -14,8 +14,6 @@ password = os.getenv("PASSWORD")
 service = os.getenv("SERVICE")
 verify_ssl = os.getenv("VERIFY_SSL_CERTS").lower() == "true"
 environment = os.getenv("ENVIRONMENT")
-print(Style.BRIGHT + Fore.BLUE + f"environment = {environment}")
-httpsAuthServerUrl = os.getenv("HTTPS_AUTH_SERVER_URL", "https://raspberry01:8443")
 httpsCalendarServerUrl = os.getenv("HTTPS_CALENDAR_SERVER_URL", "https://localhost:8443")
 if environment == "dev":
     httpsCalendarServerUrl = os.getenv("HTTPS_CALENDAR_SERVER_URL", "https://localhost:8443")
@@ -23,11 +21,16 @@ elif environment == "test":
     httpsCalendarServerUrl = os.getenv("HTTPS_CALENDAR_SERVER_URL", "https://localhost:8443")
 elif environment == "prod":
     httpsCalendarServerUrl = os.getenv("HTTPS_CALENDAR_SERVER_URL", "https://raspberry02:8443")
-
+print(Style.BRIGHT + f"Environment is {environment}")
+print(Style.BRIGHT + f"     --> AuthClient module will use {authClient.url_base} to authenticate")
+print(Style.BRIGHT + f"     --> Windfire Calendar server url {httpsCalendarServerUrl}")
 
 def test_health_endpoint():
+    apiEndpoint = "/v1/monitor/health"
+    print(Style.BRIGHT + Fore.BLUE + "---> Function test_health_endpoint() called <---")
+    print(Style.BRIGHT + Fore.BLUE + f"Calling {apiEndpoint} endpoint on Windfire Calendar Server ...")
     print(Style.BRIGHT + Fore.BLUE + "No Authentication required")
-    url = httpsCalendarServerUrl + "/v1/monitor/health"
+    url = httpsCalendarServerUrl + apiEndpoint
     http_headers = {"Content-Type": "application/json"}
     print(Style.BRIGHT + Fore.BLUE + f"Calling {url} ...")
     try:
@@ -46,7 +49,10 @@ def test_health_endpoint():
         print(Style.BRIGHT + Fore.LIGHTRED_EX + f"Request error: {e}")
 
 def authenticate():
+    print(Style.BRIGHT + Fore.BLUE + "---> Function authenticate() called <---")
     print(Style.BRIGHT + Fore.BLUE + "Authenticating with Windfire Security service to obtain access token...")
+    print(Style.BRIGHT + Fore.BLUE + "Delegating authentication to authClient module ...")
+    print(Style.BRIGHT + Fore.BLUE + "Calling client.authClient.authenticate() ...")
     access_token = authClient.authenticate(username, password, service)
     #print(f"Access Token (from AuthClient): {access_token}\n")
     if not access_token is None:
@@ -60,9 +66,12 @@ def test_count_events_by_year() -> Optional[dict]:
     """
     Test the count events by year endpoint
     """
+    apiEndpoint = "/v1/calendar/events/count/year"
+    print(Style.BRIGHT + Fore.BLUE + "---> Function test_count_events_by_year() called <---")
+    print(Style.BRIGHT + Fore.BLUE + f"Calling {apiEndpoint} endpoint on Windfire Calendar Server ...")
     if token:
         print(Style.NORMAL + Fore.GREEN + "Authentication token is available, proceeding with POST request...")
-        url = httpsCalendarServerUrl + "/v1/calendar/events/count/year"
+        url = httpsCalendarServerUrl + apiEndpoint
         http_headers = {
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json"
@@ -102,9 +111,12 @@ def test_count_events_to_today() -> Optional[dict]:
     """
     Test the count events to today endpoint
     """
+    apiEndpoint = "/v1/calendar/events/count/today"
+    print(Style.BRIGHT + Fore.BLUE + "---> Function test_count_events_to_today() called <---")
+    print(Style.BRIGHT + Fore.BLUE + f"Calling {apiEndpoint} endpoint on Windfire Calendar Server ...")
     if token:
         print(Style.NORMAL + Fore.GREEN + "Authentication token is available, proceeding with POST request...")
-        url = httpsCalendarServerUrl + "/v1/calendar/events/count/today"
+        url = httpsCalendarServerUrl + apiEndpoint
         http_headers = {
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json"
@@ -145,9 +157,12 @@ def test_count_events_by_range() -> Optional[dict]:
     """
     Test the count events by range endpoint
     """
+    apiEndpoint = "/v1/calendar/events/count/range"
+    print(Style.BRIGHT + Fore.BLUE + "---> Function test_count_events_by_range() called <---")
+    print(Style.BRIGHT + Fore.BLUE + f"Calling {apiEndpoint} endpoint on Windfire Calendar Server ...")
     if token:
         print(Style.NORMAL + Fore.GREEN + "Authentication token is available, proceeding with POST request...")
-        url = httpsCalendarServerUrl + "/v1/calendar/events/count/range"
+        url = httpsCalendarServerUrl + apiEndpoint
         http_headers = {
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json"
@@ -189,9 +204,12 @@ def test_get_upcoming_events() -> Optional[dict]:
     """
     Test the get upcoming events endpoint
     """
+    apiEndpoint = "/v1/calendar/events/upcoming"
+    print(Style.BRIGHT + Fore.BLUE + "---> Function test_get_upcoming_events() called <---")
+    print(Style.BRIGHT + Fore.BLUE + f"Calling {apiEndpoint} endpoint on Windfire Calendar Server ...")
     if token:
         print(Style.NORMAL + Fore.GREEN + "Authentication token is available, proceeding with POST request...")
-        url = httpsCalendarServerUrl + "/v1/calendar/events/upcoming"
+        url = httpsCalendarServerUrl + apiEndpoint
         http_headers = {
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json"
@@ -258,26 +276,26 @@ def main():
     print(Style.BRIGHT + Fore.CYAN +"######################################################")
     print("")
 
-    print(Style.BRIGHT + Fore.BLUE + "===> Testing /health endpoint <===")
+    print(Style.BRIGHT + Fore.BLUE + "===> Testing /v1/monitor/health endpoint <===")
     test_health_endpoint()
     print("")
 
     token = authenticate()
     print("")
     
-    print(Style.BRIGHT + Fore.BLUE + "===> Testing /calendar/events/count/year endpoint <===")
+    print(Style.BRIGHT + Fore.BLUE + "===> Testing /v1/calendar/events/count/year endpoint <===")
     test_count_events_by_year()
     print("")
 
-    print(Style.BRIGHT + Fore.BLUE + "===> Testing /calendar/events/count/today endpoint <===")
+    print(Style.BRIGHT + Fore.BLUE + "===> Testing /v1/calendar/events/count/today endpoint <===")
     test_count_events_to_today()
     print("")
     
-    print(Style.BRIGHT + Fore.BLUE + "===> Testing /calendar/events/count/range endpoint <===")
+    print(Style.BRIGHT + Fore.BLUE + "===> Testing /v1/calendar/events/count/range endpoint <===")
     test_count_events_by_range()
     print("")
     
-    print(Style.BRIGHT + Fore.BLUE + "===> Testing /calendar/events/upcoming endpoint <===")
+    print(Style.BRIGHT + Fore.BLUE + "===> Testing /v1/calendar/events/upcoming endpoint <===")
     test_get_upcoming_events()
     print("")
     

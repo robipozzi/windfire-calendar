@@ -6,9 +6,9 @@ source ../commons.sh
 # ===== MAIN FUNCTION =====
 main()
 {
-    echo ${blu}"##################################################################"${end}
-    echo ${blu}"############### Windfire Calendar test application ###############"${end}
-    echo ${blu}"##################################################################"${end}
+    echo -e "${BLU}##################################################################${RESET}"
+    echo -e "${BLU}############### Windfire Calendar test application ###############${RESET}"
+    echo -e "${BLU}##################################################################${RESET}"
     echo This script will run the following steps:
     echo    1. Create a Python Virtual Environment, if does not exist
     echo    2. Activate the Python Virtual Environment
@@ -24,19 +24,12 @@ run()
 {
     printSelectEnvironment $1
     getCredentials
-    installCustomPythonModules
     USERNAME=$USERNAME \
     PASSWORD=$PASSWORD \
     SERVICE=$AUTH_SERVICE_TEST \
     VERIFY_SSL_CERTS=$VERIFY_SSL_CERTS \
     ENVIRONMENT=$ENVIRONMENT \
     python3 test.py
-}
-
-# ===== INSTALL CUSTOM Windfire Security PYTHON MODULES PREREQUISITES FUNCTION =====
-installCustomPythonModules()
-{
-    pip3 install -e $HOME/dev/windfire-security
 }
 
 # ===== EXECUTION =====
