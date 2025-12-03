@@ -14,13 +14,23 @@ password = os.getenv("PASSWORD")
 service = os.getenv("SERVICE")
 verify_ssl = os.getenv("VERIFY_SSL_CERTS").lower() == "true"
 environment = os.getenv("ENVIRONMENT")
-httpsCalendarServerUrl = os.getenv("HTTPS_CALENDAR_SERVER_URL", "https://localhost:8443")
+calendarServerPort = "8443"
+# If PORT is set in the environment, validate and use it; otherwise keep default
+port_env = os.getenv("PORT")
+if port_env:
+    try:
+        # ensure it's an integer-like value, store as string for URL formatting
+        calendarServerPort = str(int(port_env))
+    except ValueError:
+        print(Style.BRIGHT + Fore.YELLOW + f"Invalid PORT value '{port_env}', using default port {calendarServerPort}")
+
+httpsCalendarServerUrl = os.getenv("HTTPS_CALENDAR_SERVER_URL", f"https://localhost:{calendarServerPort}")
 if environment == "dev":
-    httpsCalendarServerUrl = os.getenv("HTTPS_CALENDAR_SERVER_URL", "https://localhost:8443")
+    httpsCalendarServerUrl = os.getenv("HTTPS_CALENDAR_SERVER_URL", f"https://localhost:{calendarServerPort}")
 elif environment == "test":
-    httpsCalendarServerUrl = os.getenv("HTTPS_CALENDAR_SERVER_URL", "https://localhost:8443")
+    httpsCalendarServerUrl = os.getenv("HTTPS_CALENDAR_SERVER_URL", f"https://localhost:{calendarServerPort}")
 elif environment == "prod":
-    httpsCalendarServerUrl = os.getenv("HTTPS_CALENDAR_SERVER_URL", "https://raspberry02:8443")
+    httpsCalendarServerUrl = os.getenv("HTTPS_CALENDAR_SERVER_URL", f"https://raspberry02:{calendarServerPort}")
 print(Style.BRIGHT + f"Environment is {environment}")
 print(Style.BRIGHT + f"     --> AuthClient module will use {authClient.url_base} to authenticate")
 print(Style.BRIGHT + f"     --> Windfire Calendar server url {httpsCalendarServerUrl}")
