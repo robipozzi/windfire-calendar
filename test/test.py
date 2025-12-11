@@ -13,6 +13,7 @@ username = os.getenv("USERNAME")
 password = os.getenv("PASSWORD")
 service = os.getenv("SERVICE")
 verify_ssl = os.getenv("VERIFY_SSL_CERTS").lower() == "true"
+ca_bundle_path = os.getenv("ROOT_CA_PATH")
 environment = os.getenv("ENVIRONMENT")
 calendarServerPort = "8443"
 # If PORT is set in the environment, validate and use it; otherwise keep default
@@ -44,7 +45,21 @@ def test_health_endpoint():
     http_headers = {"Content-Type": "application/json"}
     print(Style.BRIGHT + Fore.BLUE + f"Calling {url} ...")
     try:
-        response = requests.get(url, headers=http_headers, timeout=5, verify=verify_ssl)
+        if verify_ssl:
+            print(Style.BRIGHT + f"Verify SSL certificate using CA certificate {ca_bundle_path}")
+            response = requests.get(url, 
+                                    headers=http_headers, 
+                                    verify=ca_bundle_path,
+                                    timeout=5
+                                    )
+        else:
+            print(Style.BRIGHT + f"SSL certificate will not be verified")
+            response = requests.get(url, 
+                                    headers=http_headers, 
+                                    verify=verify_ssl,
+                                    timeout=5
+                                    )
+
         print(f"GET {url} -> Status Code: {response.status_code}")
         try:
             print("Response JSON:", response.json())
@@ -94,9 +109,22 @@ def test_count_events_by_year() -> Optional[dict]:
         }
         print(Style.BRIGHT + Fore.BLUE + f"Calling {url} ...")
         try:
-            response = requests.post(url, json=data, headers=http_headers, verify=verify_ssl)
-            response.raise_for_status()
+            if verify_ssl:
+                print(Style.BRIGHT + f"Verify SSL certificate using CA certificate {ca_bundle_path}")
+                response = requests.post(url, 
+                                         json=data, 
+                                         headers=http_headers, 
+                                         verify=ca_bundle_path,
+                                         timeout=5)
+            else:
+                print(Style.BRIGHT + f"SSL certificate will not be verified")
+                response = requests.post(url, 
+                                         json=data, 
+                                         headers=http_headers, 
+                                         verify=verify_ssl,
+                                         timeout=5)
             
+            response.raise_for_status()            
             result = response.json()
             print(f"✅ Count events by year successful:")
             print(f"   Event Title: {result['event_title']}")
@@ -141,9 +169,22 @@ def test_count_events_to_today() -> Optional[dict]:
         }
         print(Style.BRIGHT + Fore.BLUE + f"Calling {url} ...")
         try:
-            response = requests.post(url, json=data, headers=http_headers, verify=verify_ssl)
-            response.raise_for_status()
+            if verify_ssl:
+                print(Style.BRIGHT + f"Verify SSL certificate using CA certificate {ca_bundle_path}")
+                response = requests.post(url, 
+                                         json=data, 
+                                         headers=http_headers, 
+                                         verify=ca_bundle_path,
+                                         timeout=5)
+            else:
+                print(Style.BRIGHT + f"SSL certificate will not be verified")
+                response = requests.post(url, 
+                                         json=data, 
+                                         headers=http_headers, 
+                                         verify=verify_ssl,
+                                         timeout=5)
             
+            response.raise_for_status()            
             result = response.json()
             print(f"✅ Count events to today successful:")
             print(f"   Event Title: {result['event_title']}")
@@ -187,9 +228,22 @@ def test_count_events_by_range() -> Optional[dict]:
         }
         print(Style.BRIGHT + Fore.BLUE + f"Calling {url} ...")
         try:
-            response = requests.post(url, json=data, headers=http_headers, verify=verify_ssl)
-            response.raise_for_status()
+            if verify_ssl:
+                print(Style.BRIGHT + f"Verify SSL certificate using CA certificate {ca_bundle_path}")
+                response = requests.post(url, 
+                                         json=data, 
+                                         headers=http_headers, 
+                                         verify=ca_bundle_path,
+                                         timeout=5)
+            else:
+                print(Style.BRIGHT + f"SSL certificate will not be verified")
+                response = requests.post(url, 
+                                         json=data, 
+                                         headers=http_headers, 
+                                         verify=verify_ssl,
+                                         timeout=5)
             
+            response.raise_for_status()
             result = response.json()
             print(f"✅ Count events by range successful:")
             print(f"   Event Title: {result['event_title']}")
@@ -226,9 +280,19 @@ def test_get_upcoming_events() -> Optional[dict]:
         }
         print(Style.BRIGHT + Fore.BLUE + f"Calling {url} ...")
         try:
-            response = requests.get(url, headers=http_headers, verify=verify_ssl)
+            if verify_ssl:
+                print(Style.BRIGHT + f"Verify SSL certificate using CA certificate {ca_bundle_path}")
+                response = requests.get(url,
+                                        headers=http_headers, 
+                                        verify=ca_bundle_path,
+                                        timeout=5)
+            else:
+                print(Style.BRIGHT + f"SSL certificate will not be verified")
+                response = requests.get(url, 
+                                        headers=http_headers, 
+                                        verify=verify_ssl,
+                                        timeout=5)
             response.raise_for_status()
-            
             result = response.json()
             print(f"✅ Get upcoming events successful:")
             print(f"   Total events: {result['count']}")

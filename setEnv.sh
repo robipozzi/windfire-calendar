@@ -20,5 +20,9 @@ PYTORCH_VIRTUAL_ENV_TEST=windfire-calendar-test
 ENVIRONMENT=
 DEFAULT_USERNAME=windfire
 DEFAULT_AUTH_SERVICE_TEST=windfire-calendar-srv
-VERIFY_SSL_CERTS=false
+VERIFY_SSL_CERTS=true
+WINDFIRE_ROOT_CA_KEY="WindfireRootCA.key"
+WINDFIRE_ROOT_CA_CERTIFICATE="WindfireRootCA.crt"
+WINDFIRE_DEFAULT_KEYSTORE_DIR=$HOME/opt/windfire/ssl/keystore
+WINDFIRE_DEFAULT_TRUSTSTORE_DIR=$HOME/opt/windfire/ssl/truststore
 ###### Variable section - END

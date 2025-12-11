@@ -1,0 +1,147 @@
+source ../../setenv.sh
+
+# ===== VARIABLES =====
+COUNTRY="IT"
+REGION="Lombardia"
+LOCALITY="Milano"
+ORGANIZATION="Windfire"
+ORGANIZATIONAL_UNIT="Windfire Calendar"
+COMMON_NAME=""
+EMAIL="r.robipozzi@gmail.com"
+DAYS_VALID=365
+SUBJECT=""
+WINDFIRE_SERVER_PRIVATE_KEY="windfire-calendar.key"
+WINDFIRE_SERVER_CERTIFICATE="windfire-calendar.crt"
+WINDFIRE_SERVER_CSR="windfire-calendar.csr"
+OPENSSL_CONFIG_FILE=""
+
+# ===== MAIN FUNCTION =====
+main()
+{
+    # Select environment
+    getEnvironment
+    echo -e "Environment selected is ${BOLD}$ENVIRONMENT${RESET}"
+    case "$ENVIRONMENT" in
+        dev|staging)
+            OPENSSL_CONFIG_FILE="openssl_config_localhost.ext"
+            ;;
+        prod)
+            OPENSSL_CONFIG_FILE="openssl_config_raspberry.ext"
+            ;;
+        *)
+            echo -e "${RED}Error: Invalid environment '$ENVIRONMENT'${RESET}"
+            echo "Valid options: dev, staging, prod"
+            exit 1
+            ;;
+    esac
+    echo -e "Openssl config file set to ${BOLD}$OPENSSL_CONFIG_FILE${RESET}"
+
+    # Enter keystore and truststore where CA root key and certificate are stored
+    getCAs
+    
+    # Enter server Common Name (CN) [e.g.: localhost]
+    getCN
+    SUBJECT="/C=${COUNTRY}/ST=${REGION}/L=${LOCALITY}/O=${ORGANIZATION}/OU=${ORGANIZATIONAL_UNIT}/CN=${COMMON_NAME}/emailAddress=${EMAIL}"
+    echo "Subject: ${SUBJECT}"
+    
+    # 1) Create server private key
+    createServerPrivateKey
+    
+    # 2) Create server CSR (Common Name must match host, or use SANs)
+    createServerCsr
+    
+    # 3) Sign server certificate
+    signServerCertificate
+}
+
+# ===== CREATE SERVER PRIVATE KEY FUNCTION =====
+createServerPrivateKey()
+{
+    echo "Generating server private key ..."
+    openssl genrsa -out $WINDFIRE_SERVER_PRIVATE_KEY 2048
+    echo "Server private key generated"
+}
+
+# ===== SERVER CSR CREATE FUNCTION =====
+createServerCsr()
+{
+    echo "Creating Server CSR ..."
+    openssl req -new -key $WINDFIRE_SERVER_PRIVATE_KEY -out $WINDFIRE_SERVER_CSR -subj "${SUBJECT}"
+    echo "Server CSR created"
+}
+
+# ===== SERVER CERTIFICATE SIGNING FUNCTION =====
+signServerCertificate()
+{
+    echo "Signing Server Certificate ..."
+    openssl x509 -req -in $WINDFIRE_SERVER_CSR -CA $WINDFIRE_ROOT_CA_CERTIFICATE -CAkey $WINDFIRE_ROOT_CA_KEY -CAcreateserial \
+                -out $WINDFIRE_SERVER_CERTIFICATE -days $DAYS_VALID -sha256 \
+                -extfile openssl_config_localhost.ext
+    echo "Server Certificate signed"
+}
+
+# ===== CERTIFICATE AUTHORITY SELECTION FUNCTION =====
+getCAs() {
+   while true; do
+        # Enter Root Certificate Authority certificate path
+        read -r -p "Enter path for Certificate Authority truststore [${WINDFIRE_DEFAULT_TRUSTSTORE_DIR}]: " WINDFIRE_TRUSTSTORE_DIR
+        if [[ -z "$WINDFIRE_TRUSTSTORE_DIR" ]]; then
+            WINDFIRE_TRUSTSTORE_DIR=$WINDFIRE_DEFAULT_TRUSTSTORE_DIR
+        fi
+        WINDFIRE_ROOT_CA_CERTIFICATE=$WINDFIRE_TRUSTSTORE_DIR/$WINDFIRE_ROOT_CA_CERTIFICATE
+        
+        # Enter Root Certificate Authority key path
+        read -r -p "Enter path for Certificate Authority keystore [${WINDFIRE_DEFAULT_KEYSTORE_DIR}]: " WINDFIRE_KEYSTORE_DIR
+        if [[ -z "$WINDFIRE_KEYSTORE_DIR" ]]; then
+            WINDFIRE_KEYSTORE_DIR=$WINDFIRE_DEFAULT_KEYSTORE_DIR
+        fi
+        WINDFIRE_ROOT_CA_KEY=$WINDFIRE_KEYSTORE_DIR/$WINDFIRE_ROOT_CA_KEY
+        break
+    done
+}
+
+# ===== SERVER COMMON NAME SETTING FUNCTION =====
+getCN() {
+    while true; do
+        read -r -p "Enter server Common Name (CN) [e.g.: localhost]: " CN
+        if [[ -z "$CN" ]]; then
+            echo -e "${RED}Error: Common Name (CN) cannot be empty${RESET}"
+            continue
+        fi
+        COMMON_NAME=$CN
+        break
+    done
+}
+
+# ===== SERVER COMMON NAME SETTING FUNCTION =====
+getEnvironment()
+{
+    while true; do
+        ENVIRONMENT_SELECTION=$1
+        if [[ -n "${ENVIRONMENT_SELECTION}" ]]; then
+            echo 
+        else
+            echo -e "${BLU}Select environment : ${RESET}"
+            echo -e "${BLU}1. Development${RESET}"
+            echo -e "${BLU}2. Test${RESET}"
+            echo -e "${BLU}3. Production${RESET}"
+            read ENVIRONMENT_SELECTION
+        fi
+
+        case $ENVIRONMENT_SELECTION in
+            1)  ENVIRONMENT=dev
+                ;;
+            2)  ENVIRONMENT=test
+                ;;
+            3)  ENVIRONMENT=prod
+                ;;
+            *) 	echo -e "${RED}No valid option selected${RESET}"
+                getEnvironment
+                ;;
+        esac
+        break
+    done
+}
+
+# ===== EXECUTION =====
+main
