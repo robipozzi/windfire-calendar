@@ -21,6 +21,7 @@ async def count_events_by_year(
     """
     Count calendar events for a specific year
     """
+    logger.info("====> /v1/calendar/events/count/year endpoint called <====")
     if not request.year:
         raise HTTPException(status_code=400, detail="Year is required for this endpoint")
     
@@ -51,6 +52,7 @@ async def count_events_to_today(
     """
     Count calendar events from start date to today
     """
+    logger.info("====> /v1/calendar/events/count/today endpoint called <====")
     if not request.start_date:
         raise HTTPException(status_code=400, detail="Start date is required for this endpoint")
     
@@ -75,6 +77,7 @@ async def count_events_by_range(
     """
     Count calendar events within a date range
     """
+    logger.info("====> /v1/calendar/events/count/range endpoint called <====")
     if not request.start_date or not request.end_date:
         raise HTTPException(status_code=400, detail="Both start_date and end_date are required for this endpoint")
     
@@ -98,7 +101,7 @@ async def get_upcoming_events(current_user: dict = Depends(verify_token)):
     """
     Get the next 10 upcoming calendar events
     """
-    logger.debug("====> START - /calendar/events/upcoming endpoint called <====")
+    logger.info("====> /v1/calendar/events/upcoming endpoint called <====")
     try:
         events = calendarSrv.getUpcomingEvents()
         
