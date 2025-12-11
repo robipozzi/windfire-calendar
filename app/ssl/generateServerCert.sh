@@ -6,7 +6,7 @@ REGION="Lombardia"
 LOCALITY="Milano"
 ORGANIZATION="Windfire"
 ORGANIZATIONAL_UNIT="Windfire Calendar"
-COMMON_NAME=""
+COMMON_NAME="Windfire Calendar API Server"
 EMAIL="r.robipozzi@gmail.com"
 DAYS_VALID=365
 SUBJECT=""
@@ -52,6 +52,9 @@ main()
     
     # 3) Sign server certificate
     signServerCertificate
+
+    # 4) Delete server CSR
+    deleteServerCsr
 }
 
 # ===== CREATE SERVER PRIVATE KEY FUNCTION =====
@@ -80,6 +83,14 @@ signServerCertificate()
     echo "Server Certificate signed"
 }
 
+# ===== SERVER CSR DELETE FUNCTION =====
+deleteServerCsr()
+{
+    echo "Deleting Server CSR ..."
+    rm $WINDFIRE_SERVER_CSR
+    echo "Server CSR deleted"
+}
+
 # ===== CERTIFICATE AUTHORITY SELECTION FUNCTION =====
 getCAs() {
    while true; do
@@ -103,10 +114,10 @@ getCAs() {
 # ===== SERVER COMMON NAME SETTING FUNCTION =====
 getCN() {
     while true; do
-        read -r -p "Enter server Common Name (CN) [e.g.: localhost]: " CN
+        read -r -p "Enter server Common Name (CN) [$COMMON_NAME]: " CN
         if [[ -z "$CN" ]]; then
-            echo -e "${RED}Error: Common Name (CN) cannot be empty${RESET}"
-            continue
+            echo -e "${BOLD}Common Name (CN) not input, going with default ${BLU}$COMMON_NAME${RESET}${RESET}"
+            break
         fi
         COMMON_NAME=$CN
         break
