@@ -59,11 +59,29 @@
         dest: "{{ remote_windfire_calendar_dir }}"
         rsync_opts:
           - "--exclude=__pycache__"
+          - "--exclude=ssl/windfire-calendar.crt"
+          - "--exclude=ssl/windfire-calendar.key"
           - "--exclude=windfire-calendar"
           - "--exclude=.env_PLACEHOLDER"
           - "--exclude=windfire-calendar.log*"
+    
+    # Task 5: Copy SSL certificate and key to remote server
+    - name: Copy certificate {{ windfire_server_certificate }} from {{ local_certs_dir }} to "{{ remote_windfire_calendar_dir }}/app/ssl" directory on remote server
+      copy:
+        src: "{{ local_certs_dir }}/{{ windfire_server_certificate }}"
+        dest: "{{ remote_windfire_calendar_dir }}/app/ssl"
+        owner: "{{ user }}"
+        group: "{{ group }}"
+        mode: "{{ mode }}"
+    - name: Copy key {{ windfire_server_key }} from {{ local_certs_dir }} to "{{ remote_windfire_calendar_dir }}/app/ssl" directory on remote server
+      copy:
+        src: "{{ local_certs_dir }}/{{ windfire_server_key }}"
+        dest: "{{ remote_windfire_calendar_dir }}/app/ssl"
+        owner: "{{ user }}"
+        group: "{{ group }}"
+        mode: "{{ mode }}"
 
-    # Task 5: Copy setenv.sh to remote server
+    # Task 6: Copy setenv.sh to remote server
     - name: Copy setenv.sh to "{{ remote_windfire_calendar_dir }}" directory on remote server
       copy:
         src: "../../setenv.sh"
@@ -72,7 +90,7 @@
         group: "{{ group }}"
         mode: "{{ mode }}"
     
-    # Task 6: Copy commons.sh to remote server
+    # Task 7: Copy commons.sh to remote server
     - name: Copy commons.sh to "{{ remote_windfire_calendar_dir }}" directory on remote server
       copy:
         src: "../../commons.sh"
@@ -81,19 +99,36 @@
         group: "{{ group }}"
         mode: "{{ mode }}"
     
-    # Task 7: Copy custom Python module to remote server
+    # Task 8: Ensure remote truststore directory exists and copy Windfire Root CA certificate
+    - name: Ensure remote truststore directory {{ remote_truststore_dir }} exists
+      file:
+        path: "{{ remote_truststore_dir }}"
+        state: directory
+        owner: "{{ user }}"
+        group: "{{ group }}"
+        mode: "{{ mode }}"
+        recurse: yes
+    - name: Copy {{ windfire_ca_root_certificate }} to "{{ remote_truststore_dir }}" directory on remote server
+      copy:
+        src: "{{ local_truststore_dir }}/{{ windfire_ca_root_certificate }}"
+        dest: "{{ remote_truststore_dir }}"
+        owner: "{{ user }}"
+        group: "{{ group }}"
+        mode: "{{ mode }}"
+        
+    # Task 9: Copy custom Python module to remote server
     - name: Copy custom Python module directory to "{{ remote_home_dir }}" directory on remote server
       ansible.builtin.synchronize:
-        src: "../../../../windfire-security-client/dist"
+        src: "../../../windfire-security-client/dist"
         dest: "{{ remote_home_dir }}"
 
-    # Task 8: Create Python virtual environment
+    # Task 10: Create Python virtual environment
     - name: Create Python virtual environment
       command:
         cmd: "{{ python_interpreter }} -m venv {{ venv_path }}"
         creates: "{{ venv_path }}/bin/activate"
 
-    # Task 9: Verify virtualenv installation
+    # Task 11: Verify virtualenv installation
     - name: Verify virtualenv is properly configured
       shell:
         cmd: "source {{ venv_path }}/bin/activate && python --version"
@@ -104,7 +139,7 @@
       debug:
         msg: "Python version in virtualenv: {{ python_version.stdout }}"
     
-    # Task 10: Install required Python modules in virtualenv
+    # Task 12: Install required Python modules in virtualenv
     - name: Install required Python modules in virtualenv by running {{ install_python_modules_script }} install script
       shell: |
         source {{ venv_path }}/bin/activate
@@ -112,7 +147,7 @@
       args:
         executable: /bin/bash
       
-    # Task 11: List installed packages
+    # Task 13: List installed packages
     - name: List installed packages in virtualenv
       shell:
         cmd: "{{ venv_path }}/bin/pip list"

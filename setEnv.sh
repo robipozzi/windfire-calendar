@@ -15,14 +15,18 @@ coffee3="${coffee} ${coffee} ${coffee}"
 ##### TERMINAL COLORS - END
 
 ###### Variable section - START
+# ===== PYTHON VIRTUAL ENVIRONMENTS =====
 PYTORCH_VIRTUAL_ENV=windfire-calendar
 PYTORCH_VIRTUAL_ENV_TEST=windfire-calendar-test
+# ===== APPLICATION CONFIGURATION =====
 ENVIRONMENT=
 DEFAULT_USERNAME=windfire
 DEFAULT_AUTH_SERVICE_TEST=windfire-calendar-srv
 VERIFY_SSL_CERTS=true
+# ===== ROOT CA =====
 WINDFIRE_ROOT_CA_KEY="WindfireRootCA.key"
 WINDFIRE_ROOT_CA_CERTIFICATE="WindfireRootCA.crt"
 WINDFIRE_DEFAULT_KEYSTORE_DIR=$HOME/opt/windfire/ssl/keystore
 WINDFIRE_DEFAULT_TRUSTSTORE_DIR=$HOME/opt/windfire/ssl/truststore
+WINDFIRE_DEFAULT_CERTS_PROD_DIR=$HOME/opt/windfire/ssl/certs/raspberry
 ###### Variable section - END

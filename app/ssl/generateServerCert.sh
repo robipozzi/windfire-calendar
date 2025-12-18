@@ -19,14 +19,20 @@ OPENSSL_CONFIG_FILE=""
 main()
 {
     # Select environment
-    getEnvironment
+    selectEnvironment
     echo -e "Environment selected is ${BOLD}$ENVIRONMENT${RESET}"
     case "$ENVIRONMENT" in
         dev|staging)
             OPENSSL_CONFIG_FILE="openssl_config_localhost.ext"
+            CERTS_DIR="."
             ;;
         prod)
             OPENSSL_CONFIG_FILE="openssl_config_raspberry.ext"
+            CERTS_DIR=$WINDFIRE_DEFAULT_CERTS_PROD_DIR
+            # Check if Certs directory exists, in case it does not exist, create it
+            if [ ! -d "$CERTS_DIR" ]; then
+                mkdir -p "$CERTS_DIR" || { echo -e "${RED}Error: failed to create directory: $CERTS_DIR${RED}" >&2; exit 1; }
+            fi
             ;;
         *)
             echo -e "${RED}Error: Invalid environment '$ENVIRONMENT'${RESET}"
@@ -61,26 +67,31 @@ main()
 createServerPrivateKey()
 {
     echo "Generating server private key ..."
-    openssl genrsa -out $WINDFIRE_SERVER_PRIVATE_KEY 2048
+    openssl genrsa -out $CERTS_DIR/$WINDFIRE_SERVER_PRIVATE_KEY 2048
     echo "Server private key generated"
+    echo 
 }
 
 # ===== SERVER CSR CREATE FUNCTION =====
 createServerCsr()
 {
     echo "Creating Server CSR ..."
-    openssl req -new -key $WINDFIRE_SERVER_PRIVATE_KEY -out $WINDFIRE_SERVER_CSR -subj "${SUBJECT}"
+    openssl req -new -key $CERTS_DIR/$WINDFIRE_SERVER_PRIVATE_KEY -out $WINDFIRE_SERVER_CSR -subj "${SUBJECT}"
     echo "Server CSR created"
+    echo 
 }
 
 # ===== SERVER CERTIFICATE SIGNING FUNCTION =====
 signServerCertificate()
 {
     echo "Signing Server Certificate ..."
+    echo "  --> Create Server Certificate in $CERTS_DIR directory ..."
+    echo "  --> Using $OPENSSL_CONFIG_FILE openssl configuration file ..."
     openssl x509 -req -in $WINDFIRE_SERVER_CSR -CA $WINDFIRE_ROOT_CA_CERTIFICATE -CAkey $WINDFIRE_ROOT_CA_KEY -CAcreateserial \
-                -out $WINDFIRE_SERVER_CERTIFICATE -days $DAYS_VALID -sha256 \
-                -extfile openssl_config_localhost.ext
+                -out $CERTS_DIR/$WINDFIRE_SERVER_CERTIFICATE -days $DAYS_VALID -sha256 \
+                -extfile $OPENSSL_CONFIG_FILE
     echo "Server Certificate signed"
+    echo 
 }
 
 # ===== SERVER CSR DELETE FUNCTION =====
@@ -125,7 +136,7 @@ getCN() {
 }
 
 # ===== SERVER COMMON NAME SETTING FUNCTION =====
-getEnvironment()
+selectEnvironment()
 {
     while true; do
         ENVIRONMENT_SELECTION=$1
