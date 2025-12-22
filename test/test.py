@@ -15,7 +15,7 @@ service = os.getenv("SERVICE")
 verify_ssl = os.getenv("VERIFY_SSL_CERTS").lower() == "true"
 ca_bundle_path = os.getenv("ROOT_CA_PATH")
 environment = os.getenv("ENVIRONMENT")
-calendarServerPort = "8443"
+calendarServerPort = "8444"
 # If PORT is set in the environment, validate and use it; otherwise keep default
 port_env = os.getenv("PORT")
 if port_env:
@@ -317,32 +317,7 @@ def test_get_upcoming_events() -> Optional[dict]:
             return None
     else:
         print(Style.BRIGHT + Fore.LIGHTRED_EX + "No valid authentication token available, skipping GET request")
-        
-# NOT USED keeping for reference    
-def __test_get_upcoming_events():
-    """
-    Test the upcoming events endpoint
-    """
-    if token:
-        print(Style.NORMAL + Fore.GREEN + "Authentication token is available, proceeding with GET request...")
-        url = httpsCalendarServerUrl + "/v1/calendar/events/upcoming"
-        http_headers = {
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json"
-        }
-        headers = ["-H", f"Authorization: Bearer {token}"]
-        print(Style.BRIGHT + Fore.BLUE + f"Calling {url} ...")
-        get_response = subprocess.run(
-            ["curl", "-X", "GET", url] + http_headers,
-            capture_output=True,
-            text=True
-        )
-
-        print("GET Status Code:", get_response.returncode)
-        print("GET Response Body:", get_response.stdout)
-    else:
-        print(Style.BRIGHT + Fore.LIGHTRED_EX + "No valid authentication token available, skipping GET request")
-            
+                    
 def main():
     global token
     print(Style.BRIGHT + Fore.CYAN +"######################################################")

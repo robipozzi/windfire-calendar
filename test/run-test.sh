@@ -1,5 +1,5 @@
 #!/bin/bash
-source ../setenv.sh
+source ../common.sh
 
 # ***** Run Windfire Calendar test application
 
@@ -103,7 +103,7 @@ print_help() {
     echo
     echo -e "${BOLD}OPTIONS:${RESET}"
     echo -e "    -p, --port PORT            Specify port on which Windfire Calendar server runs (1-65535)"
-    echo -e "                               Default: 8000 (for HTTP) / 8443 (for HTTPS)"
+    echo -e "                               Default: 8000 (for HTTP) / 8444 (for HTTPS)"
     echo
     echo -e "    -h, --help                 Display this help message and exit"
     echo
