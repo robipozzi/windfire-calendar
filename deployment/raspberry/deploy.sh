@@ -1,3 +1,3 @@
 eval "$(ssh-agent -s)"
 ssh-add $HOME/.ssh/ansible_rsa
-ansible-playbook windfire-calendar-install.yaml
+ansible-playbook windfire-calendar-deploy.yaml
