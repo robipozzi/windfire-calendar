@@ -42,7 +42,7 @@ WINDFIRE_DEFAULT_CERTS_PROD_DIR=$HOME/opt/windfire/ssl/certs/raspberry
 
 ###### Function section - START
 # Function to select and set programs run environment
-printSelectEnvironment()
+selectEnvironment()
 {
     ENVIRONMENT_SELECTION=$1
     if [[ -n "${ENVIRONMENT_SELECTION}" ]]; then
@@ -67,7 +67,7 @@ setEnvironment()
         3)  ENVIRONMENT=prod
             ;;
 		*) 	echo -e "${RED}No valid option selected${RESET}"
-			printSelectEnvironment
+			selectEnvironment
 			;;
 	esac
 }

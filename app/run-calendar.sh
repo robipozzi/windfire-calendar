@@ -27,7 +27,7 @@ main()
 # ===== TERMINAL APPLICATION RUN FUNCTION =====
 run()
 {
-    printSelectEnvironment $1
+    selectEnvironment $1
     echo -e "${CYAN}Running calendar manager in environment : $ENVIRONMENT${RESET}"
     ENVIRONMENT=$ENVIRONMENT python3 calendarMgr.py
 }

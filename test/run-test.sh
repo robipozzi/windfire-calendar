@@ -24,7 +24,7 @@ main()
 # ===== TEST APPLICATION RUN FUNCTION =====
 run()
 {
-    printSelectEnvironment $1
+    selectEnvironment $1
     getCredentials
 
     # Show configuration

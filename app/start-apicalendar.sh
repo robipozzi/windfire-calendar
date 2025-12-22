@@ -28,7 +28,7 @@ main() {
 # ===== SERVER RUN FUNCTION =====
 run()
 {
-    printSelectEnvironment $1
+    selectEnvironment $1
     echo -e "${YELLOW}Running calendar service API in environment : $ENVIRONMENT${RESET}"
     inputKeycloakClientSecret
 
