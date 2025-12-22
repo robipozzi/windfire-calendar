@@ -1,5 +1,7 @@
+#!/bin/bash
 source ../setenv.sh
-source ../commons.sh
+
+# ***** Stop Windfire Calendar FastAPI server
 
 PROCESS_TO_KILL=calendarApiServer.py
 PID=

@@ -1,9 +1,7 @@
 #!/bin/bash
+source ../setenv.sh
 
 # ***** Start FastAPI server for Windfire Calendar API (wraps Google Calendar API)
-
-source ../setenv.sh
-source ../commons.sh
 
 # ===== DEFAULT VALUES =====
 LOG_LEVEL=
