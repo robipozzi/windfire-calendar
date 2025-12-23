@@ -6,12 +6,12 @@ source ../common.sh
 main()
 {
     # Check if the directory exists
-    echo -e "Check if Python virtual environment ${BLU}$PYTORCH_VIRTUAL_ENV${RESET} exists"
-    if [ -d "$PYTORCH_VIRTUAL_ENV" ]; then
-        echo -e "Python virtual environment ${BLU}$PYTORCH_VIRTUAL_ENV${RESET} exists, deactivating ..."
+    echo -e "Check if Python virtual environment ${BLU}$PYTHON_VIRTUAL_ENV${RESET} exists"
+    if [ -d "$PYTHON_VIRTUAL_ENV" ]; then
+        echo -e "Python virtual environment ${BLU}$PYTHON_VIRTUAL_ENV${RESET} exists, deactivating ..."
         deactivate
     else
-        echo -e "Python virtual environment ${BLU}$PYTORCH_VIRTUAL_ENV${RESET} does not exist"
+        echo -e "Python virtual environment ${BLU}$PYTHON_VIRTUAL_ENV${RESET} does not exist"
     fi
 }
 

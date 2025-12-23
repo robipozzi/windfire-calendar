@@ -9,13 +9,13 @@ main()
     echo -e "${BLU}########## Python Virtual Environment creation ##########${RESET}"
     echo -e "${BLU}#########################################################${RESET}"
     # Check if the directory exists
-    echo -e "Check if Python virtual environment ${BLU}$PYTORCH_VIRTUAL_ENV_TEST${RESET} exists"
-    if [ -d "$PYTORCH_VIRTUAL_ENV_TEST" ]; then
-        echo -e "Python virtual environment ${BLU}$PYTORCH_VIRTUAL_ENV_TEST${RESET} exists, activating ..."
+    echo -e "Check if Python virtual environment ${BLU}$PYTHON_VIRTUAL_ENV_TEST${RESET} exists"
+    if [ -d "$PYTHON_VIRTUAL_ENV_TEST" ]; then
+        echo -e "Python virtual environment ${BLU}$PYTHON_VIRTUAL_ENV_TEST${RESET} exists, activating ..."
         echo
         activate $1
     else
-        echo -e "${MAGENTA}Python virtual environment $PYTORCH_VIRTUAL_ENV_TEST does not exist, creating ...${RESET}"
+        echo -e "${MAGENTA}Python virtual environment $PYTHON_VIRTUAL_ENV_TEST does not exist, creating ...${RESET}"
         echo
         create
         echo
@@ -29,7 +29,7 @@ main()
 create()
 {
     echo Creating Python Virtual Environment ...
-    python3 -m venv $PYTORCH_VIRTUAL_ENV_TEST
+    python3 -m venv $PYTHON_VIRTUAL_ENV_TEST
     echo -e "${GREEN}Python Virtual Environment created${RESET}"
 }
 
