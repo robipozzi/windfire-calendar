@@ -1,4 +1,5 @@
 import os
+import sys
 from handler import actionHandler
 from colorama import Fore, Style, init # pyright: ignore[reportMissingModuleSource]
 # Initialize logger at the top so it's available everywhere 
@@ -71,4 +72,8 @@ def main():
 ##### Main Execution #####
 ##########################
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except FileNotFoundError as e:
+        print(Style.BRIGHT + Fore.RED + str(e))
+        sys.exit(1)

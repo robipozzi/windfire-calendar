@@ -1,34 +1,233 @@
 # Windfire Calendar
-This project manages Google calendar interactions using Pythong programs that wrap Google APIs.
+Windfire Calendar is a Python application that wraps the Google Calendar API to query events on the **primary** calendar of a Google account. The main use case is counting how many times an event with a given title (e.g. *"Palestra"*) occurred in a period.
 
-The project provides a modular codebase that implements the core functionality and utilities needed to run, test, and extend the application. It is organized for clarity, maintainability, and easy integration into larger systems.
+The same business logic is exposed in two ways:
+* a **terminal application** ([app/calendarMgr.py](app/calendarMgr.py)) with an interactive, colored menu
+* a secured **REST API** ([app/calendarApiServer.py](app/calendarApiServer.py)) built with FastAPI, protected by Bearer tokens verified against a Keycloak-backed Windfire Security service
 
-## Activate Python Virtual Environment
-The project makes use of Python Virtual Environment, which is a fully self-contained development environment, complete with its own Python interpreter, libraries, and required dependencies. This creates a separate “mini” Python setup that’s completely isolated from the system-wide Python installation and any other virtual environments you may have.
+The repository also includes a test client for the REST API, scripts to generate TLS certificates, and Ansible playbooks to deploy the service to a Raspberry Pi.
 
-This allows to run python programs in an environment that is virtually segregated from the host: have a look at https://www.hostinger.com/tutorials/how-to-create-a-python-virtual-environment for more information.
+## Table of contents
+- [Repository structure](#repository-structure)
+- [Prerequisites](#prerequisites)
+- [Python Virtual Environment](#python-virtual-environment)
+- [Configuration](#configuration)
+- [Configure Google Calendar API credentials](#configure-google-calendar-api-credentials)
+- [Run the terminal-based application](#run-the-terminal-based-application)
+- [Run the REST API service](#run-the-rest-api-service)
+- [Test the REST API](#test-the-rest-api)
+- [TLS certificates](#tls-certificates)
+- [Deploy to Raspberry Pi](#deploy-to-raspberry-pi)
 
-Some convenient scripts are provided to facilitate the creation and activation of Python Virtual environment:
-* **[createPythonVenv.sh](createPythonVenv.sh)** : it creates the Python Virtual Environment; this basically just creates a subfolder *google-calendar* (this can be set in **[setVars.sh](setVars.sh)** script) under the project root, where all the Python interpreter, libraries, and required dependencies will be placed.
-* **[activatePythonVenv.sh](activatePythonVenv.sh)** : it activates Python Virtual Environment; the script is "smart" enough to first create the virtual environment, if it does not exists 
-* **[installPrereqs.sh](installPrereqs.sh)** : it download all the python modules that the project needs to work correctly, run it only after having activated the Virtual environment.
+## Repository structure
+```
+windfire-calendar/
+├── common.sh                     # shared shell variables and functions (colors, environment/platform selection, credential prompts)
+├── app/                          # application code (run all app scripts from this folder)
+│   ├── calendarMgr.py            # terminal application entry point
+│   ├── calendarApiServer.py      # FastAPI server entry point
+│   ├── apiRouter.py              # /v1 router, aggregates the routers below
+│   ├── routers/                  # healthRouters.py (/v1/monitor), calendarRouters.py (/v1/calendar)
+│   ├── services/calendarService.py  # Google OAuth + Google Calendar API calls
+│   ├── handler/actionHandler.py  # terminal input handling and output
+│   ├── models/calendarModels.py  # Pydantic request/response models
+│   ├── commons.py                # Bearer token verification dependency
+│   ├── middlewares.py            # HTTPS enforcement and security headers
+│   ├── config/settings.py        # reads configuration from .env
+│   ├── logger/loggerFactory.py   # file logger with daily rotation
+│   ├── utils/dateMgr.py          # date helpers
+│   ├── ssl/                      # server certificate generation script and OpenSSL configs
+│   ├── .env_PLACEHOLDER          # template for app/.env
+│   └── *.sh                      # venv, run, start/stop scripts
+├── test/                         # REST API test client (test.py + scripts)
+├── deployment/                   # deploy/undeploy scripts and Ansible playbooks for Raspberry Pi
+└── img/                          # images used by this README
+```
 
-To deactivate and exit from the Python Virtual Environment just input **deactivate** command in the terminal.
+## Prerequisites
+* **Python 3** with the `venv` module
+* A **Google account** and a Google Cloud project with the Google Calendar API enabled (see [Configure Google Calendar API credentials](#configure-google-calendar-api-credentials))
+* The **windfire-security-client** Python package (module `client.authClient`), used by the REST API and by the test client to authenticate and verify tokens. The install scripts expect it:
+  * in **development/test**: as source code in `$HOME/dev/windfire-security-client` (installed in editable mode, `pip install -e`)
+  * in **production** (environment option `3`): as a wheel in `$HOME/dist/client-1.0.0-py3-none-any.whl`
+* For the REST API: a reachable **Keycloak** / Windfire Security service and its client secret
+* For HTTPS: the **Windfire Root CA** key and certificate (see [TLS certificates](#tls-certificates))
+* For deployment: **Ansible** and SSH access to the Raspberry Pi
+
+## Python Virtual Environment
+The project uses Python Virtual Environments, so that all Python dependencies are isolated from the system-wide installation. Have a look at https://www.hostinger.com/tutorials/how-to-create-a-python-virtual-environment for more information.
+
+The virtual environment names are defined in [common.sh](common.sh):
+* `windfire-calendar` (created under `app/`) for the application
+* `windfire-calendar-test` (created under `test/`) for the test client
+
+All scripts `source ../common.sh`, so they must be run **from their own folder** (e.g. `cd app` before running app scripts).
+
+The following scripts are available in [app/](app/) (with equivalent versions in [test/](test/)):
+* **[createPythonVenv.sh](app/createPythonVenv.sh)**: creates the virtual environment if it does not exist, activates it and installs the prerequisites
+* **[activatePythonVenv.sh](app/activatePythonVenv.sh)**: activates an existing virtual environment
+* **[installPrereqs.sh](app/installPrereqs.sh)**: installs the pinned Python modules (Google API client and OAuth libraries, FastAPI, Uvicorn, Pydantic, PyJWT, colorama, python-dateutil, cryptography) and the custom windfire-security-client module. Pass `3` as argument to install the production wheel instead of the editable source
+* **[deactivatePythonVenv.sh](app/deactivatePythonVenv.sh)**: prints the command to deactivate the environment
+
+The run scripts described below call `createPythonVenv.sh` automatically, so usually you don't need to run these scripts yourself. To leave a virtual environment, type **deactivate** in the terminal.
+
+## Configuration
+Configuration is read from **app/.env** (loaded with python-dotenv). Copy [app/.env_PLACEHOLDER](app/.env_PLACEHOLDER) to `app/.env` and set the values; `.env` is gitignored, so never commit real secrets.
+
+| Variable | Description |
+|---|---|
+| `APP_NAME` | Service name, shown in the API docs and in the health response |
+| `API_HOST` | Address the API server binds to (e.g. `0.0.0.0`) |
+| `API_PORT` | HTTP port (default in template: `8000`) |
+| `API_PORT_SECURE` | HTTPS port, used when HTTPS is enabled (default in template: `8443`) |
+| `SSL_KEYFILE` / `SSL_CERTFILE` | Server private key and certificate paths, e.g. `./ssl/windfire-calendar.key` / `./ssl/windfire-calendar.crt` |
+| `ENFORCE_HTTPS` | `true` to serve over HTTPS and redirect HTTP requests to HTTPS; `false` for plain HTTP (development only) |
+| `ALLOWED_HOSTS` | Comma-separated list used both as CORS origins and as trusted hosts (trusted host check is skipped when set to `*`) |
+| `KEYCLOAK_SERVER_URL` | Keycloak / Windfire Security server URL |
+| `KEYCLOAK_SERVICE` | Service (client) name used when verifying Bearer tokens |
+| `DEFAULT_LOG_LEVEL` | `DEBUG`, `INFO`, `WARNING`, `ERROR` or `CRITICAL`; overridden by the `LOG_LEVEL` environment variable |
+| `DEFAULT_LOG_FILE` | Log file path, e.g. `logs/windfire_calendar.log` |
+| `DEFAULT_LOG_ROTATION_WHEN` | When the log file is rotated (e.g. `midnight`); 7 old files are kept |
+| `GOOGLE_CREDENTIALS_FILE` | Google OAuth client file (default `credentials.json`) |
+| `GOOGLE_TOKEN_FILE` | Google OAuth token file (default `token.json`) |
+
+Relative paths for the Google OAuth files are resolved against the `app/` directory. Logs are written **only to the log file**, not to the console.
+
+The start scripts also pass these environment variables to the API server: `ENVIRONMENT` (`dev`, `test` or `prod`), `LOG_LEVEL`, `KEYCLOAK_CLIENT_SECRET`, `VERIFY_SSL_CERTS` and `ROOT_CA_PATH` (Windfire Root CA certificate, default `$HOME/opt/windfire/ssl/truststore/WindfireRootCA.crt`).
+
+## Configure Google Calendar API credentials
+The application authenticates to Google Calendar with OAuth and read-only scope (`calendar.readonly`). It needs an OAuth client file (**credentials.json**) that is not part of the repository:
+1. In Google Cloud Console, go to **APIs & Services > Library** and enable **Google Calendar API**
+2. Configure the **OAuth consent screen** and add your Google account as a **Test user**
+3. Go to **Credentials > Create credentials > OAuth client ID**, select application type **Desktop app** and download the JSON file
+4. Save it as **app/credentials.json** (or set `GOOGLE_CREDENTIALS_FILE` in `.env` to its location)
+
+At the first run a browser window opens to grant consent. The resulting token is saved to **app/token.json** (configurable with `GOOGLE_TOKEN_FILE`) and reused afterwards; expired tokens are refreshed automatically, and if the refresh fails the consent flow runs again. If you change the scopes, delete `token.json` to re-authenticate.
+
+If `credentials.json` is missing, the terminal application prints these setup steps and exits instead of failing with a traceback.
 
 ## Run the terminal-based application
-The application is a very simple, command line based kind of application: to run it just launch **[run-calendar.sh](run-calendar.sh)** script.
+```bash
+cd app
+./run-calendar.sh [1|2|3]
+```
+The script creates and activates the virtual environment, installs prerequisites, asks for the environment (1 = Development, 2 = Test, 3 = Production) unless it is passed as argument, and runs [calendarMgr.py](app/calendarMgr.py).
 
-The program will just present the following menu, exposing to the user 4 different query functions
+The program presents the following menu:
 
 ![](img/launch-menu.png)
 
-By selecting the appropriate menu options, the user will be able to
-* get the count of calendar events for a specific year 
-* get the count of calendar events from a specific date up to today
-* get the count of calendar events between two specific dates
-* get the count of the next 10 events in calendar
+1. **Count calendar events for a specific year**: asks for a year and an event name. For the current year it counts up to today; for past years up to December 31st. Future years are rejected
+2. **Count calendar events from start date up to today**: asks for a start date (day, month, year) and an event name
+3. **Count calendar events from start to end date**: asks for start date, end date and event name
+4. **List upcoming 10 events**: prints start time and title of the next 10 events
+5. **Exit**
 
-## Run as FastAPI web service
-To run a web service just launch **[run-api-calendar.sh](run-api-calendar.sh)** script.
+Dates in the future are rejected and the user is asked again. Event names are used as a free-text search (`q` parameter of the Google Calendar API) on the primary calendar, with recurring events expanded into single occurrences, up to 1000 events per query. After each operation the menu is shown again until you choose **Exit**.
 
-The module builds a secured FastAPI service that exposes Google Calendar operations (counting events and listing upcoming events) and a Keycloak-backed authentication endpoint. It wires a lifespan context manager for startup logic, sets up HTTP Bearer security, declares Pydantic request/response models, and implements REST endpoints that call into a calendarService module.
+## Run the REST API service
+### Start and stop
+```bash
+cd app
+./start-apicalendar.sh [1|2|3] [--LOG_LEVEL LEVEL]
+```
+* `1|2|3` selects the environment (Development, Test, Production); if omitted you are asked for it
+* `--LOG_LEVEL` overrides `DEFAULT_LOG_LEVEL` (e.g. `DEBUG`, `ERROR`)
+* `-h`/`--help` shows the help, `-v`/`--version` shows the version
+
+The script prepares the virtual environment, asks for the **Keycloak client secret** (unless `KEYCLOAK_CLIENT_SECRET` is already exported) and starts [calendarApiServer.py](app/calendarApiServer.py) with Uvicorn.
+
+Other scripts:
+* **[run-apicalendar-background.sh](app/run-apicalendar-background.sh)**: starts the server in background in the Production environment, redirecting output to `app/logs/windfire-calendar.log`
+* **[stop-apicalendar.sh](app/stop-apicalendar.sh)**: finds the `calendarApiServer.py` process and kills it
+
+### HTTP vs HTTPS
+* If `ENFORCE_HTTPS=true` and both `SSL_KEYFILE` and `SSL_CERTFILE` are set, the server starts with **HTTPS on `API_PORT_SECURE`**. It exits if the key or certificate file does not exist
+* Otherwise it starts with **plain HTTP on `API_PORT`** and logs a warning
+
+With `ENFORCE_HTTPS=true`, HTTP requests (also checking the `X-Forwarded-Proto` and `X-Forwarded-SSL` headers set by proxies) are redirected to HTTPS with a `307`. All responses get security headers (`Strict-Transport-Security`, `X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`), and responses are GZip compressed.
+
+### Endpoints
+Interactive API documentation (Swagger UI) is available at `/docs`; the root path `/` redirects there.
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| GET | `/v1/monitor/health` | No | Health check, returns `{"status": "healthy", "service": "<APP_NAME>"}` |
+| POST | `/v1/calendar/events/count/year` | Bearer | Count events for a year (`event_title`, `year` required) |
+| POST | `/v1/calendar/events/count/today` | Bearer | Count events from a start date up to today (`event_title`, `start_date` required) |
+| POST | `/v1/calendar/events/count/range` | Bearer | Count events between two dates (`event_title`, `start_date`, `end_date` required; `start_date` must not be after `end_date`) |
+| GET | `/v1/calendar/events/upcoming` | Bearer | Next 10 upcoming events |
+
+Calendar endpoints require an `Authorization: Bearer <token>` header. The token is verified remotely through the windfire-security-client module against the `KEYCLOAK_SERVICE` service; invalid or expired tokens get `401`.
+
+Example request:
+```bash
+curl -X POST https://localhost:8443/v1/calendar/events/count/range \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"event_title": "Palestra", "start_date": "2025-01-01", "end_date": "2025-12-31"}'
+```
+Response:
+```json
+{"event_title": "Palestra", "count": 42, "start_date": "2025-01-01", "end_date": "2025-12-31"}
+```
+The upcoming events endpoint returns `{"events": [{"id", "summary", "start", "end", "description"}, ...], "count": N}`.
+
+Errors are returned as JSON: `400` for missing or invalid parameters, `401` for authentication failures, `500` for errors while calling Google Calendar. HTTP errors include `detail`, `path` and `timestamp`.
+
+> **Note:** the REST API also uses Google OAuth. Run the terminal application (or the server) once on a machine with a browser to create `token.json`, then copy it along with `credentials.json`.
+
+## Test the REST API
+The [test/](test/) folder contains a client that calls every endpoint of a running server over HTTPS.
+```bash
+cd test
+./run-test.sh [-p PORT]
+```
+The script creates the `windfire-calendar-test` virtual environment, then asks for:
+* the environment: Development and Test target `https://localhost:<PORT>`, Production targets `https://raspberry02:<PORT>` (override with `HTTPS_CALENDAR_SERVER_URL`)
+* username (default `windfire`), password and authentication service (default `windfire-calendar-srv`)
+
+[test.py](test/test.py) then:
+1. calls the health endpoint (no authentication)
+2. gets an access token from the Windfire Security service through `authClient.authenticate()`
+3. calls the count by year, count up to today, count by range and upcoming events endpoints, using the event title *"Palestra"*
+
+The server certificate is verified with the Windfire Root CA from `$HOME/opt/windfire/ssl/truststore/WindfireRootCA.crt` (`VERIFY_SSL_CERTS=true` in [common.sh](common.sh)).
+
+The default port is `8444`, while the `.env` template sets `API_PORT_SECURE=8443`; pass `-p` with the port your server actually uses.
+
+## TLS certificates
+[app/ssl/generateServerCert.sh](app/ssl/generateServerCert.sh) creates a server private key and a certificate signed by the Windfire Root CA:
+```bash
+cd app/ssl
+./generateServerCert.sh
+```
+The script asks for:
+* the environment:
+  * **Development**: uses [openssl_config_localhost.ext](app/ssl/openssl_config_localhost.ext) (SAN `localhost`, `127.0.0.1`) and writes files to `app/ssl`
+  * **Production**: uses [openssl_config_raspberry.ext](app/ssl/openssl_config_raspberry.ext) (SAN `raspberry02`) and writes files to `$HOME/opt/windfire/ssl/certs/raspberry`
+* the truststore and keystore folders that contain `WindfireRootCA.crt` and `WindfireRootCA.key` (defaults `$HOME/opt/windfire/ssl/truststore` and `$HOME/opt/windfire/ssl/keystore`)
+* the server Common Name
+
+It produces `windfire-calendar.key` and `windfire-calendar.crt`, valid for 365 days. Key and certificate files are gitignored.
+
+## Deploy to Raspberry Pi
+The [deployment/](deployment/) folder contains scripts that run Ansible playbooks against the `calendar_service` host group of your Ansible inventory (`/etc/ansible/hosts`), using the SSH key `$HOME/.ssh/ansible_rsa`.
+```bash
+cd deployment
+./deploy.sh [1]      # 1 = Raspberry
+./undeploy.sh [1]
+```
+[windfire-calendar-deploy.yaml](deployment/raspberry/windfire-calendar-deploy.yaml) runs these steps:
+1. stops any running `calendarApiServer.py` process
+2. removes and recreates `/home/pi/windfire-calendar`, creating `/home/pi/logs` too
+3. copies the `app/` folder (excluding caches, the local venv, local certificates and `.env_PLACEHOLDER`)
+4. copies the production server certificate and key from `$HOME/opt/windfire/ssl/certs/raspberry` and the Windfire Root CA certificate to the remote truststore
+5. copies the windfire-security-client `dist` folder (from `../windfire-security-client/dist`, next to this repo) to the remote home folder
+6. creates the virtual environment on the Pi and installs the prerequisites with `installPrereqs.sh 3`
+
+[windfire-calendar-full-deploy.yaml](deployment/raspberry/windfire-calendar-full-deploy.yaml) runs the same tasks after updating and upgrading the system packages with apt and installing OpenSSL. [windfire-calendar-undeploy.yaml](deployment/raspberry/windfire-calendar-undeploy.yaml) stops the service and removes its folder.
+
+Deployment variables (user, folders, certificate names, process name) are in [deployment/raspberry/conf/config.yaml](deployment/raspberry/conf/config.yaml).
+
+The playbook does not start the service. After deploying, start it on the Pi from `/home/pi/windfire-calendar/app` with `./start-apicalendar.sh 3` or `./run-apicalendar-background.sh`.

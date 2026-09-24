@@ -6,11 +6,17 @@ source ../common.sh
 main()
 {
     echo "Installing Python prerequisites..."
-    installPythonModules
+    if ! installPythonModules; then
+        echo -e "${RED}Error: Python prerequisites installation failed, see pip output above.${RESET}"
+        return 1
+    fi
     echo "Python prerequisites installation complete."
     echo ""
     echo "Installing custom Python prerequisites..."
-    installCustomPythonModules $1
+    if ! installCustomPythonModules $1; then
+        echo -e "${RED}Error: custom Python prerequisites installation failed, see pip output above.${RESET}"
+        return 1
+    fi
     echo "Custom Python prerequisites installation complete."
 }
 
@@ -23,9 +29,9 @@ installPythonModules()
                 google-api-python-client==2.108.0 \
                 colorama==0.4.6 \
                 fastapi==0.104.1 \
-                uvicorn[standard]==0.24.0 \
+                "uvicorn[standard]==0.24.0" \
                 PyJWT==2.8.0 \
-                pydantic==2.5.0 \
+                pydantic==2.13.5 \
                 python-dateutil==2.9.0.post0 \
                 cryptography==41.0.0
 }

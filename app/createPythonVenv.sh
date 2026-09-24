@@ -14,6 +14,8 @@ main()
         echo -e "Python virtual environment ${BLU}$PYTHON_VIRTUAL_ENV${RESET} exists, activating ..."
         echo
         activate
+        echo
+        installPrereqs $1
     else
         echo -e "${MAGENTA}Python virtual environment $PYTHON_VIRTUAL_ENV does not exist, creating ...${RESET}"
         echo

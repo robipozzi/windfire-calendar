@@ -11,8 +11,27 @@ from colorama import init # pyright: ignore[reportMissingModuleSource]
 from logger.loggerFactory import logger_factory
 logger = logger_factory.get_logger('calendarService')
 
+from config.settings import settings
+
 # If modifying these scopes, delete the file token.json.
 SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
+
+# Google OAuth files: configurable via .env, relative paths are resolved against the app directory
+APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+def resolvePath(path):
+  return path if os.path.isabs(path) else os.path.normpath(os.path.join(APP_DIR, path))
+
+CREDENTIALS_FILE = resolvePath(settings.get('GOOGLE_CREDENTIALS_FILE') or "credentials.json")
+TOKEN_FILE = resolvePath(settings.get('GOOGLE_TOKEN_FILE') or "token.json")
+
+CREDENTIALS_HELP = f"""Google OAuth client file not found: {CREDENTIALS_FILE}
+To create it:
+  1. Google Cloud Console > APIs & Services > Library: enable 'Google Calendar API'
+  2. OAuth consent screen: configure it and add your Google account as a Test user
+  3. Credentials > Create credentials > OAuth client ID > Application type 'Desktop app'
+  4. Download the JSON and save it as {CREDENTIALS_FILE}
+     (or set GOOGLE_CREDENTIALS_FILE in .env to its location)"""
 
 # Global credentials variable
 credentials = None
@@ -34,9 +53,9 @@ class CalendarService:
           creds = None
           # The file token.json stores the user's access and refresh tokens, and is
           # created automatically when the authorization flow completes for the first time.
-          if os.path.exists("token.json"):
-              logger.info("Getting credentials for Google from token.json")
-              creds = Credentials.from_authorized_user_file("token.json", SCOPES)
+          if os.path.exists(TOKEN_FILE):
+              logger.info(f"Getting credentials for Google from {TOKEN_FILE}")
+              creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
           # If there are no (valid) credentials available, let the user log in.
           if not creds or not creds.valid:
               logger.warning("No valid Google credentials were found, logging in ...")
@@ -46,25 +65,26 @@ class CalendarService:
                       creds.refresh(Request())
                   except Exception as e:
                       logger.error(f"Failed to refresh credentials: {e}. Re-authenticating ...")
-                      flow = InstalledAppFlow.from_client_secrets_file(
-                          "credentials.json", SCOPES
-                      )
-                      creds = flow.run_local_server(port=0)
+                      creds = self._runOAuthFlow()
               else:
-                  logger.info("Authenticating to Google using settings from credentials.json ...")
-                  flow = InstalledAppFlow.from_client_secrets_file(
-                      "credentials.json", SCOPES
-                  )
-                  creds = flow.run_local_server(port=0)
+                  creds = self._runOAuthFlow()
               # Save the credentials for the next run
-              with open("token.json", "w") as token:
-                  logger.info("Authenticating to Google using credentials.json and saving credentials to token.json ...")
+              with open(TOKEN_FILE, "w") as token:
                   token.write(creds.to_json())
-                  logger.info("Credentials saved to token.json")
-              
+                  logger.info(f"Credentials saved to {TOKEN_FILE}")
+
           credentials = creds
       except HttpError:
           logger.error("HTTP Error")
+
+  def _runOAuthFlow(self):
+      # Runs the interactive Google OAuth flow using the OAuth client file
+      if not os.path.exists(CREDENTIALS_FILE):
+          logger.error(f"Google OAuth client file not found: {CREDENTIALS_FILE}")
+          raise FileNotFoundError(CREDENTIALS_HELP)
+      logger.info(f"Authenticating to Google using settings from {CREDENTIALS_FILE} ...")
+      flow = InstalledAppFlow.from_client_secrets_file(CREDENTIALS_FILE, SCOPES)
+      return flow.run_local_server(port=0)
 
   ######################################
   ##### Calendar inquiry functions #####

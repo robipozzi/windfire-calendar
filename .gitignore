@@ -4,8 +4,7 @@ app/ssl/*.pem
 app/ssl/*.crt
 app/ssl/*.csr
 app/ssl/*.key
-app/windfire-security-client.log*
-app/logs/windfire-security-client.log*
+app/logs/windfire_calendar.log*
 windfire-calendar/
 .env
 credentials.json
