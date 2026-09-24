@@ -211,6 +211,8 @@ The script asks for:
 
 It produces `windfire-calendar.key` and `windfire-calendar.crt`, valid for 365 days. Key and certificate files are gitignored.
 
+The Windfire Root CA must already exist: create it with `createRootCA.sh` in the windfire-security repository, which asks for the Root CA key passphrase that this script then needs to sign. The script stops if the Root CA certificate or key is missing, and checks the new certificate against the Root CA with `openssl verify`.
+
 ## Deploy to Raspberry Pi
 The [deployment/](deployment/) folder contains scripts that run Ansible playbooks against the `calendar_service` host group of your Ansible inventory (`/etc/ansible/hosts`), using the SSH key `$HOME/.ssh/ansible_rsa`.
 ```bash
