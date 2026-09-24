@@ -69,7 +69,7 @@ The following scripts are available in [app/](app/) (with equivalent versions in
 * **[installPrereqs.sh](app/installPrereqs.sh)**: installs the pinned Python modules (Google API client and OAuth libraries, FastAPI, Uvicorn, Pydantic, PyJWT, colorama, python-dateutil, cryptography) and the custom windfire-security-client module. Pass `3` as argument to install the production wheel instead of the editable source
 * **[deactivatePythonVenv.sh](app/deactivatePythonVenv.sh)**: prints the command to deactivate the environment
 
-The run scripts described below call `createPythonVenv.sh` automatically, so usually you don't need to run these scripts yourself. To leave a virtual environment, type **deactivate** in the terminal.
+The run scripts described below call `createPythonVenv.sh` automatically, so usually you don't need to run these scripts yourself. Note that the app version reinstalls prerequisites on every run, while the test version installs them only when it creates the virtual environment. To leave a virtual environment, type **deactivate** in the terminal.
 
 ## Configuration
 Configuration is read from **app/.env** (loaded with python-dotenv). Copy [app/.env_PLACEHOLDER](app/.env_PLACEHOLDER) to `app/.env` and set the values; `.env` is gitignored, so never commit real secrets.
@@ -87,7 +87,9 @@ Configuration is read from **app/.env** (loaded with python-dotenv). Copy [app/.
 | `KEYCLOAK_SERVICE` | Service (client) name used when verifying Bearer tokens |
 | `DEFAULT_LOG_LEVEL` | `DEBUG`, `INFO`, `WARNING`, `ERROR` or `CRITICAL`; overridden by the `LOG_LEVEL` environment variable |
 | `DEFAULT_LOG_FILE` | Log file path, e.g. `logs/windfire_calendar.log` |
-| `DEFAULT_LOG_ROTATION_WHEN` | When the log file is rotated (e.g. `midnight`); 7 old files are kept |
+| `DEFAULT_LOG_ROTATION_WHEN` | When the log file is rotated (default `midnight`) |
+| `DEFAULT_LOG_ROTATION_INTERVAL` | Rotation interval, in units of `DEFAULT_LOG_ROTATION_WHEN` (default `1`) |
+| `DEFAULT_LOG_BACKUP_COUNT` | Number of rotated log files kept (default `7`) |
 | `GOOGLE_CREDENTIALS_FILE` | Google OAuth client file (default `credentials.json`) |
 | `GOOGLE_TOKEN_FILE` | Google OAuth token file (default `token.json`) |
 
@@ -139,13 +141,13 @@ The script ([run-apicalendar.sh](app/run-apicalendar.sh)) prepares the virtual e
 
 Other scripts:
 * **[run-apicalendar-background.sh](app/run-apicalendar-background.sh)**: starts the server in background in the Production environment, redirecting output to `app/logs/windfire-calendar.log`
-* **[stop-apicalendar.sh](app/stop-apicalendar.sh)**: finds the `calendarApiServer.py` process and kills it
+* **[stop-apicalendar.sh](app/stop-apicalendar.sh)**: finds the `calendarApiServer.py` process and sends it `SIGTERM`; if it is still running after 10 seconds, it is force-killed with `SIGKILL`
 
 ### HTTP vs HTTPS
 * If `ENFORCE_HTTPS=true` and both `SSL_KEYFILE` and `SSL_CERTFILE` are set, the server starts with **HTTPS on `API_PORT_SECURE`**. It exits if the key or certificate file does not exist
 * Otherwise it starts with **plain HTTP on `API_PORT`** and logs a warning
 
-With `ENFORCE_HTTPS=true`, HTTP requests (also checking the `X-Forwarded-Proto` and `X-Forwarded-SSL` headers set by proxies) are redirected to HTTPS with a `307`, except for the health endpoint `/v1/monitor/health`, which stays reachable over HTTP for load balancer checks. All responses get security headers (`Strict-Transport-Security`, `X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`), and responses are GZip compressed.
+With `ENFORCE_HTTPS=true`, HTTP requests (also checking the `X-Forwarded-Proto` and `X-Forwarded-SSL` headers set by proxies) are redirected to HTTPS with a `307`, except for the health endpoint `/v1/monitor/health`, which stays reachable over HTTP for load balancer checks. All other responses get security headers (`Strict-Transport-Security`, `X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`), and responses are GZip compressed.
 
 ### Endpoints
 Interactive API documentation (Swagger UI) is available at `/docs`; the root path `/` redirects there.
@@ -173,7 +175,7 @@ Response:
 ```
 The upcoming events endpoint returns `{"events": [{"id", "summary", "start", "end", "description"}, ...], "count": N}`.
 
-Errors are returned as JSON: `400` for missing or invalid parameters, `401` for authentication failures, `500` for errors while calling Google Calendar. HTTP errors include `detail`, `path` and `timestamp`.
+Errors are returned as JSON: `422` for malformed request bodies (e.g. missing `event_title` or dates not in `YYYY-MM-DD` format), `400` for parameters missing for the specific endpoint or an invalid date range, `401` for authentication failures, `500` for errors while calling Google Calendar. HTTP errors include `detail`, `path` and `timestamp`.
 
 > **Note:** the REST API also uses Google OAuth. Run the terminal application (or the server) once on a machine with a browser to create `token.json`, then copy it along with `credentials.json`.
 
@@ -204,7 +206,7 @@ cd app/ssl
 ```
 The script asks for:
 * the environment:
-  * **Development**: uses [openssl_config_localhost.ext](app/ssl/openssl_config_localhost.ext) (SAN `localhost`, `127.0.0.1`) and writes files to `app/ssl`
+  * **Development** / **Test**: uses [openssl_config_localhost.ext](app/ssl/openssl_config_localhost.ext) (SAN `localhost`, `127.0.0.1`) and writes files to `app/ssl`
   * **Production**: uses [openssl_config_raspberry.ext](app/ssl/openssl_config_raspberry.ext) (SAN `raspberry02`) and writes files to `$HOME/opt/windfire/ssl/certs/raspberry`
 * the truststore and keystore folders that contain `WindfireRootCA.crt` and `WindfireRootCA.key` (defaults `$HOME/opt/windfire/ssl/truststore` and `$HOME/opt/windfire/ssl/keystore`)
 * the server Common Name
@@ -221,9 +223,9 @@ cd deployment
 ./undeploy.sh [1]
 ```
 [windfire-calendar-deploy.yaml](deployment/raspberry/windfire-calendar-deploy.yaml) runs these steps:
-1. stops any running `calendarApiServer.py` process
+1. stops any running `calendarApiServer.py` process with `SIGTERM` and waits for it to terminate
 2. removes and recreates `/home/pi/windfire-calendar`, creating `/home/pi/logs` too
-3. copies the `app/` folder (excluding caches, the local venv, local certificates and `.env_PLACEHOLDER`)
+3. copies the `app/` folder (excluding caches, the local venv, local certificates, log files and `.env_PLACEHOLDER`). Your local `app/.env`, `credentials.json` and `token.json` are copied as well, so prepare them before deploying
 4. copies the production server certificate and key from `$HOME/opt/windfire/ssl/certs/raspberry`
 5. copies [common.sh](common.sh) next to the `app/` folder, since the app scripts source `../common.sh`
 6. copies the Windfire Root CA certificate to the remote truststore
