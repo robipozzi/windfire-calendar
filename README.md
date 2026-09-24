@@ -129,13 +129,13 @@ Dates in the future are rejected and the user is asked again. Event names are us
 ### Start and stop
 ```bash
 cd app
-./start-apicalendar.sh [1|2|3] [--LOG_LEVEL LEVEL]
+./run-apicalendar.sh [1|2|3] [--LOG_LEVEL LEVEL]
 ```
 * `1|2|3` selects the environment (Development, Test, Production); if omitted you are asked for it
 * `--LOG_LEVEL` overrides `DEFAULT_LOG_LEVEL` (e.g. `DEBUG`, `ERROR`)
 * `-h`/`--help` shows the help, `-v`/`--version` shows the version
 
-The script prepares the virtual environment, asks for the **Keycloak client secret** (unless `KEYCLOAK_CLIENT_SECRET` is already exported) and starts [calendarApiServer.py](app/calendarApiServer.py) with Uvicorn.
+The script ([run-apicalendar.sh](app/run-apicalendar.sh)) prepares the virtual environment, asks for the **Keycloak client secret** (unless `KEYCLOAK_CLIENT_SECRET` is already exported) and starts [calendarApiServer.py](app/calendarApiServer.py) with Uvicorn.
 
 Other scripts:
 * **[run-apicalendar-background.sh](app/run-apicalendar-background.sh)**: starts the server in background in the Production environment, redirecting output to `app/logs/windfire-calendar.log`
@@ -145,7 +145,7 @@ Other scripts:
 * If `ENFORCE_HTTPS=true` and both `SSL_KEYFILE` and `SSL_CERTFILE` are set, the server starts with **HTTPS on `API_PORT_SECURE`**. It exits if the key or certificate file does not exist
 * Otherwise it starts with **plain HTTP on `API_PORT`** and logs a warning
 
-With `ENFORCE_HTTPS=true`, HTTP requests (also checking the `X-Forwarded-Proto` and `X-Forwarded-SSL` headers set by proxies) are redirected to HTTPS with a `307`. All responses get security headers (`Strict-Transport-Security`, `X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`), and responses are GZip compressed.
+With `ENFORCE_HTTPS=true`, HTTP requests (also checking the `X-Forwarded-Proto` and `X-Forwarded-SSL` headers set by proxies) are redirected to HTTPS with a `307`, except for the health endpoint `/v1/monitor/health`, which stays reachable over HTTP for load balancer checks. All responses get security headers (`Strict-Transport-Security`, `X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`), and responses are GZip compressed.
 
 ### Endpoints
 Interactive API documentation (Swagger UI) is available at `/docs`; the root path `/` redirects there.
@@ -194,7 +194,7 @@ The script creates the `windfire-calendar-test` virtual environment, then asks f
 
 The server certificate is verified with the Windfire Root CA from `$HOME/opt/windfire/ssl/truststore/WindfireRootCA.crt` (`VERIFY_SSL_CERTS=true` in [common.sh](common.sh)).
 
-The default port is `8444`, while the `.env` template sets `API_PORT_SECURE=8443`; pass `-p` with the port your server actually uses.
+The default port is `8443`, matching `API_PORT_SECURE` in the `.env` template; pass `-p` if your server uses a different port.
 
 ## TLS certificates
 [app/ssl/generateServerCert.sh](app/ssl/generateServerCert.sh) creates a server private key and a certificate signed by the Windfire Root CA:
@@ -222,12 +222,14 @@ cd deployment
 1. stops any running `calendarApiServer.py` process
 2. removes and recreates `/home/pi/windfire-calendar`, creating `/home/pi/logs` too
 3. copies the `app/` folder (excluding caches, the local venv, local certificates and `.env_PLACEHOLDER`)
-4. copies the production server certificate and key from `$HOME/opt/windfire/ssl/certs/raspberry` and the Windfire Root CA certificate to the remote truststore
-5. copies the windfire-security-client `dist` folder (from `../windfire-security-client/dist`, next to this repo) to the remote home folder
-6. creates the virtual environment on the Pi and installs the prerequisites with `installPrereqs.sh 3`
+4. copies the production server certificate and key from `$HOME/opt/windfire/ssl/certs/raspberry`
+5. copies [common.sh](common.sh) next to the `app/` folder, since the app scripts source `../common.sh`
+6. copies the Windfire Root CA certificate to the remote truststore
+7. copies the windfire-security-client `dist` folder (from `../windfire-security-client/dist`, next to this repo) to the remote home folder
+8. creates the virtual environment on the Pi and installs the prerequisites with `installPrereqs.sh 3`
 
-[windfire-calendar-full-deploy.yaml](deployment/raspberry/windfire-calendar-full-deploy.yaml) runs the same tasks after updating and upgrading the system packages with apt and installing OpenSSL. [windfire-calendar-undeploy.yaml](deployment/raspberry/windfire-calendar-undeploy.yaml) stops the service and removes its folder.
+[windfire-calendar-full-deploy.yaml](deployment/raspberry/windfire-calendar-full-deploy.yaml) runs the same tasks after updating and upgrading the system packages with apt and installing OpenSSL. `deploy.sh` doesn't run it; run it directly with `ANSIBLE_CONFIG=raspberry/ansible.cfg ansible-playbook raspberry/windfire-calendar-full-deploy.yaml` from the `deployment/` folder. [windfire-calendar-undeploy.yaml](deployment/raspberry/windfire-calendar-undeploy.yaml) stops the service and removes its folder.
 
 Deployment variables (user, folders, certificate names, process name) are in [deployment/raspberry/conf/config.yaml](deployment/raspberry/conf/config.yaml).
 
-The playbook does not start the service. After deploying, start it on the Pi from `/home/pi/windfire-calendar/app` with `./start-apicalendar.sh 3` or `./run-apicalendar-background.sh`.
+The playbook does not start the service. After deploying, start it on the Pi from `/home/pi/windfire-calendar/app` with `./run-apicalendar.sh 3` or `./run-apicalendar-background.sh`.

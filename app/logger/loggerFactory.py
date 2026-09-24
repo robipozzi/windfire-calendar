@@ -51,15 +51,13 @@ class LoggerFactory:
         """Ensure logging is configured and return a logger."""
         self.logger = logging.getLogger(logger_name)
         file_handler = TimedRotatingFileHandler(
-            os.getenv("DEFAULT_LOG_FILE"), 
-            when=os.getenv("DEFAULT_LOG_ROTATION_WHEN"), 
-            interval=1 / 86400, 
-            backupCount=7
+            os.getenv("DEFAULT_LOG_FILE"),
+            when=os.getenv("DEFAULT_LOG_ROTATION_WHEN") or "midnight",
+            interval=int(os.getenv("DEFAULT_LOG_ROTATION_INTERVAL") or 1),
+            backupCount=int(os.getenv("DEFAULT_LOG_BACKUP_COUNT") or 7)
         )
-        stream_handler = logging.StreamHandler()
         #file_handler.setFormatter(JsonFormatter())
         file_handler.setFormatter(ColorFormatter("%(asctime)s - %(levelname)s - %(name)s - %(message)s"))
-        stream_handler.setFormatter(ColorFormatter("%(asctime)s - %(levelname)s - %(name)s - %(message)s"))
         self.logger.handlers = [file_handler]
         #print(f"Logger level set to: {self.level} for logger '{logger_name}'")
         self.logger.setLevel(self.level)

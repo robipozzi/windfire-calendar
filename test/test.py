@@ -15,7 +15,7 @@ service = os.getenv("SERVICE")
 verify_ssl = os.getenv("VERIFY_SSL_CERTS").lower() == "true"
 ca_bundle_path = os.getenv("ROOT_CA_PATH")
 environment = os.getenv("ENVIRONMENT")
-calendarServerPort = "8444"
+calendarServerPort = "8443"
 # If PORT is set in the environment, validate and use it; otherwise keep default
 port_env = os.getenv("PORT")
 if port_env:

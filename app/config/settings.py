@@ -27,7 +27,7 @@ class Settings():
         Returns:
             The value of the environment variable or None if not set
         """
-        if key in 'ENFORCE_HTTPS':
+        if key == 'ENFORCE_HTTPS':
             value = None
             raw = os.getenv(key)
             if isinstance(raw, str):
@@ -37,7 +37,7 @@ class Settings():
                 value = bool(raw)
             return value
         
-        if key in 'API_PORT' or key in 'API_PORT_SECURE':
+        if key in ('API_PORT', 'API_PORT_SECURE'):
             raw = os.getenv(key)
             if raw is None or raw.strip() == '':
                 return None

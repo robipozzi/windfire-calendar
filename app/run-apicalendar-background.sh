@@ -25,7 +25,7 @@ main()
 run()
 {
     inputKeycloakClientSecret
-    ./start-apicalendar.sh 3 > logs/windfire-calendar.log 2>&1 &
+    ./run-apicalendar.sh 3 > logs/windfire-calendar.log 2>&1 &
 }
 
 # ===== EXECUTION =====

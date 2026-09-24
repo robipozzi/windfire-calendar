@@ -104,7 +104,7 @@ printHelp() {
     echo -e "  4. Run the Windfire Calendar FastAPI server"
     echo
     echo -e "${BOLD}USAGE:${RESET}"
-    echo -e "    ./start-apicalendar.sh [OPTIONS] [ENVIRONMENT]"
+    echo -e "    ./run-apicalendar.sh [OPTIONS] [ENVIRONMENT]"
     echo
     echo -e "${BOLD}OPTIONS:${RESET}"
     echo -e "-v, --version           Show version information"
@@ -114,10 +114,10 @@ printHelp() {
     echo -e "-h, --help              Display this help message and exit"
     echo
     echo -e "${BOLD}EXAMPLES:${RESET}"
-    echo -e "./start-apicalendar.sh --LOG_LEVEL ERROR"
+    echo -e "./run-apicalendar.sh --LOG_LEVEL ERROR"
     echo -e "    Set logging level to ERROR"
     echo
-    echo -e "./start-apicalendar.sh --help"
+    echo -e "./run-apicalendar.sh --help"
     echo -e "    Display this help message"
     echo
     echo -e "${BOLD}WHAT THIS SCRIPT DOES:${RESET}"
@@ -135,7 +135,7 @@ printHelp() {
     echo -e "   2   Missing environment specification"
     echo
     echo -e "${BOLD}NOTES:${RESET}"
-    echo -e "   - The script sources '../setenv.sh' and '../commons.sh' for configuration"
+    echo -e "   - The script sources '../common.sh' for configuration"
     echo -e "   - Python 3 is required"
 }
 

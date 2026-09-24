@@ -22,7 +22,7 @@ main()
     selectEnvironment
     echo -e "Environment selected is ${BOLD}$ENVIRONMENT${RESET}"
     case "$ENVIRONMENT" in
-        dev|staging)
+        dev|test)
             OPENSSL_CONFIG_FILE="openssl_config_localhost.ext"
             CERTS_DIR="."
             ;;
@@ -36,7 +36,7 @@ main()
             ;;
         *)
             echo -e "${RED}Error: Invalid environment '$ENVIRONMENT'${RESET}"
-            echo "Valid options: dev, staging, prod"
+            echo "Valid options: dev, test, prod"
             exit 1
             ;;
     esac
@@ -131,36 +131,6 @@ getCN() {
             break
         fi
         COMMON_NAME=$CN
-        break
-    done
-}
-
-# ===== SERVER COMMON NAME SETTING FUNCTION =====
-selectEnvironment()
-{
-    while true; do
-        ENVIRONMENT_SELECTION=$1
-        if [[ -n "${ENVIRONMENT_SELECTION}" ]]; then
-            echo 
-        else
-            echo -e "${BLU}Select environment : ${RESET}"
-            echo -e "${BLU}1. Development${RESET}"
-            echo -e "${BLU}2. Test${RESET}"
-            echo -e "${BLU}3. Production${RESET}"
-            read ENVIRONMENT_SELECTION
-        fi
-
-        case $ENVIRONMENT_SELECTION in
-            1)  ENVIRONMENT=dev
-                ;;
-            2)  ENVIRONMENT=test
-                ;;
-            3)  ENVIRONMENT=prod
-                ;;
-            *) 	echo -e "${RED}No valid option selected${RESET}"
-                getEnvironment
-                ;;
-        esac
         break
     done
 }

@@ -48,6 +48,7 @@ deployToRaspberry()
     echo -e "${BLU}Deploy Windfire Calendar component to Raspberry Pi ...${RESET}"
     eval "$(ssh-agent -s)"
     ssh-add $HOME/.ssh/ansible_rsa
+    export ANSIBLE_CONFIG=$PWD/raspberry/ansible.cfg
     ansible-playbook raspberry/windfire-calendar-deploy.yaml
     echo -e "${BLU}Done${RESET}"
     echo 

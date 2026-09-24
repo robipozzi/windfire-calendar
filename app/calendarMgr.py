@@ -51,7 +51,7 @@ def printMenu():
     print(Fore.CYAN + "5. Exit")
 
 def getChoice():
-    choice = input(Fore.MAGENTA + "Enter your choice (1-4): ")
+    choice = input(Fore.MAGENTA + "Enter your choice (1-5): ")
     return choice
 
 #################################

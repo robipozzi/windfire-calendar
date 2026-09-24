@@ -49,7 +49,7 @@ def formatDateTimeEndOfDay(date):
   return formattedDate
 
 def getDate(day, month, year):
-  return datetime.datetime(int(year), int(month), int(day))
+  return datetime(int(year), int(month), int(day))
 
 def getDateTime(date):
   logger.debug(f"====> dateMgr.getDateTime(date) called <====")
