@@ -6,6 +6,7 @@ source ../common.sh
 # ===== DEFAULT VALUES =====
 LOG_LEVEL=
 RUN_ENVIRONMENT=
+KEYCLOAK_ENV_OPTION=
 
 # ===== MAIN FUNCTION =====
 main() {
@@ -18,26 +19,44 @@ main() {
     # Invoke parseArguments() function to parse and validate arguments
     parseArguments "$@"
 
+    # Select application environment and Keycloak environment (prompts only for values not given as arguments)
+    selectEnvironment "$RUN_ENVIRONMENT"
+    selectKeycloakEnvironment "$KEYCLOAK_ENV_OPTION"
+
+    # createPythonVenv.sh re-sources ../common.sh, which resets these variables: save them and restore after
+    local selectedEnvironment=$ENVIRONMENT
+    local selectedKeycloakEnvironment=$KEYCLOAK_ENVIRONMENT
+    local selectedKeycloakHost=$KEYCLOAK_SERVER_HOST
+    local selectedKeycloakPort=$KEYCLOAK_SERVER_PORT
+
     # Source createPythonVenv.sh script to create and activate Python Virtual Environment
-    source ./createPythonVenv.sh "$RUN_ENVIRONMENT"
+    source ./createPythonVenv.sh "$ENVIRONMENT_SELECTION"
+
+    ENVIRONMENT=$selectedEnvironment
+    KEYCLOAK_ENVIRONMENT=$selectedKeycloakEnvironment
+    KEYCLOAK_SERVER_HOST=$selectedKeycloakHost
+    KEYCLOAK_SERVER_PORT=$selectedKeycloakPort
 
     # Invoke run() function to start the FastAPI server
-    run "$RUN_ENVIRONMENT"
+    run
 }
 
 # ===== SERVER RUN FUNCTION =====
 run()
 {
-    selectEnvironment $1
     echo -e "${YELLOW}Running calendar service API in environment : $ENVIRONMENT${RESET}"
+    echo -e "${YELLOW}Authenticating against Keycloak environment : $KEYCLOAK_ENVIRONMENT ($KEYCLOAK_SERVER_HOST:$KEYCLOAK_SERVER_PORT)${RESET}"
     inputKeycloakClientSecret
 
     # Run Calendar Service
-    echo -e "${YELLOW}Starting server with: LOG_LEVEL=${LOG_LEVEL} ENVIRONMENT=$ENVIRONMENT KEYCLOAK_CLIENT_SECRET={***} python3 calendarApiServer.py${RESET}"
+    echo -e "${YELLOW}Starting server with: LOG_LEVEL=${LOG_LEVEL} ENVIRONMENT=$ENVIRONMENT KEYCLOAK_ENVIRONMENT=$KEYCLOAK_ENVIRONMENT KEYCLOAK_SERVER_HOST=$KEYCLOAK_SERVER_HOST KEYCLOAK_SERVER_PORT=$KEYCLOAK_SERVER_PORT KEYCLOAK_CLIENT_SECRET={***} python3 calendarApiServer.py${RESET}"
 
     LOG_LEVEL=${LOG_LEVEL} \
     VERIFY_SSL_CERTS=$VERIFY_SSL_CERTS \
     ENVIRONMENT=$ENVIRONMENT \
+    KEYCLOAK_ENVIRONMENT=$KEYCLOAK_ENVIRONMENT \
+    KEYCLOAK_SERVER_HOST=$KEYCLOAK_SERVER_HOST \
+    KEYCLOAK_SERVER_PORT=$KEYCLOAK_SERVER_PORT \
     ROOT_CA_PATH=$WINDFIRE_DEFAULT_TRUSTSTORE_DIR/$WINDFIRE_ROOT_CA_CERTIFICATE \
     KEYCLOAK_CLIENT_SECRET=$KEYCLOAK_CLIENT_SECRET \
     python3 calendarApiServer.py
@@ -46,44 +65,50 @@ run()
 # ===== ARGUMENT PARSING FUNCTION =====
 parseArguments() {
     echo "Parsing arguments..."
-    local arg="$1"
-
-    # Check for help flags
-    if [[ "$arg" == "-h" ]] || [[ "$arg" == "--help" ]]; then
-        printHelp
-        exit 0
-    fi
-
-    # Check for version flag
-    if [[ "$arg" == "-v" ]] || [[ "$arg" == "--version" ]]; then
-        echo "Windfire Calendar API Server v1.0.0"
-        exit 0
-    fi
-
-    # Check for valid environment
-    if [[ "$arg" == "1" ]] || [[ "$arg" == "2" ]] || [[ "$arg" == "3" ]]; then
-        echo "environment option selected: $arg"
-        RUN_ENVIRONMENT="$arg"
-        arg="$2"
-        # Check for version flag
-        if [[ "$arg" == "--LOG_LEVEL" ]] ; then
-            arg="$3"
-            echo "Setting LOG_LEVEL to $arg"
-            LOG_LEVEL="$arg"
-            return 0
-        fi
-        return
-    fi
-
-    # Check for version flag
-    if [[ "$arg" == "--LOG_LEVEL" ]] ; then
-        arg="$2"
-        echo "Setting LOG_LEVEL to $arg"
-        LOG_LEVEL="$arg"
-        return 0
-    fi
-
-    return 0
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            1|2|3)
+                echo "environment option selected: $1"
+                RUN_ENVIRONMENT="$1"
+                shift
+                ;;
+            --LOG_LEVEL)
+                if [[ -z "$2" ]]; then
+                    echo -e "${RED}Error: --LOG_LEVEL requires a value${RESET}"
+                    exit 1
+                fi
+                echo "Setting LOG_LEVEL to $2"
+                LOG_LEVEL="$2"
+                shift 2
+                ;;
+            --KEYCLOAK_ENV)
+                case $2 in
+                    1|2|3|dev|test|prod)
+                        echo "Keycloak environment option selected: $2"
+                        KEYCLOAK_ENV_OPTION="$2"
+                        shift 2
+                        ;;
+                    *)
+                        echo -e "${RED}Error: --KEYCLOAK_ENV requires one of dev|test|prod (or 1|2|3)${RESET}"
+                        exit 1
+                        ;;
+                esac
+                ;;
+            -h|--help)
+                printHelp
+                exit 0
+                ;;
+            -v|--version)
+                echo "Windfire Calendar API Server v1.0.0"
+                exit 0
+                ;;
+            *)
+                echo -e "${RED}Error: Unknown option '$1'${RESET}"
+                echo "Use --help for usage information"
+                exit 1
+                ;;
+        esac
+    done
 }
 
 # ===== HELP FUNCTION =====
@@ -104,18 +129,30 @@ printHelp() {
     echo -e "  4. Run the Windfire Calendar FastAPI server"
     echo
     echo -e "${BOLD}USAGE:${RESET}"
-    echo -e "    ./run-apicalendar.sh [OPTIONS] [ENVIRONMENT]"
+    echo -e "    ./run-apicalendar.sh [1|2|3] [--KEYCLOAK_ENV ENV] [--LOG_LEVEL LEVEL]"
+    echo
+    echo -e "${BOLD}ARGUMENTS:${RESET}"
+    echo -e "1|2|3                   Application environment: 1=Development, 2=Test, 3=Production (prompted if omitted)"
     echo
     echo -e "${BOLD}OPTIONS:${RESET}"
     echo -e "-v, --version           Show version information"
+    echo
+    echo -e "--KEYCLOAK_ENV ENV      Keycloak environment used for authentication: dev|test|prod (or 1|2|3)"
+    echo -e "                        Prompted if omitted (Enter = prod). Host/port are read from KEYCLOAK_<ENV>_HOST/PORT in .env"
     echo
     echo -e "--LOG_LEVEL LEVEL       Set the logging level (e.g., DEBUG, INFO, WARNING, ERROR, CRITICAL)"
     echo
     echo -e "-h, --help              Display this help message and exit"
     echo
     echo -e "${BOLD}EXAMPLES:${RESET}"
-    echo -e "./run-apicalendar.sh --LOG_LEVEL ERROR"
-    echo -e "    Set logging level to ERROR"
+    echo -e "./run-apicalendar.sh"
+    echo -e "    Prompt for application environment and Keycloak environment"
+    echo
+    echo -e "./run-apicalendar.sh 3 --KEYCLOAK_ENV prod"
+    echo -e "    Run in Production, authenticating against the Production Keycloak"
+    echo
+    echo -e "./run-apicalendar.sh 1 --KEYCLOAK_ENV dev --LOG_LEVEL DEBUG"
+    echo -e "    Run in Development against the Development Keycloak, with DEBUG logging"
     echo
     echo -e "./run-apicalendar.sh --help"
     echo -e "    Display this help message"
@@ -128,6 +165,11 @@ printHelp() {
     echo
     echo -e "${BOLD}ENVIRONMENT VARIABLES REQUIRED:${RESET}"
     echo -e "   KEYCLOAK_CLIENT_SECRET  Keycloak OAuth client secret (prompted if not set)"
+    echo
+    echo -e "${BOLD}.env KEYS USED:${RESET}"
+    echo -e "   KEYCLOAK_DEV_HOST / KEYCLOAK_DEV_PORT     Development Keycloak endpoint"
+    echo -e "   KEYCLOAK_TEST_HOST / KEYCLOAK_TEST_PORT   Test Keycloak endpoint"
+    echo -e "   KEYCLOAK_PROD_HOST / KEYCLOAK_PROD_PORT   Production Keycloak endpoint"
     echo 
     echo -e "${BOLD}EXIT CODES:${RESET}"
     echo -e "   0   Success"

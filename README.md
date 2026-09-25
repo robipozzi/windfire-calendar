@@ -83,7 +83,9 @@ Configuration is read from **app/.env** (loaded with python-dotenv). Copy [app/.
 | `SSL_KEYFILE` / `SSL_CERTFILE` | Server private key and certificate paths, e.g. `./ssl/windfire-calendar.key` / `./ssl/windfire-calendar.crt` |
 | `ENFORCE_HTTPS` | `true` to serve over HTTPS and redirect HTTP requests to HTTPS; `false` for plain HTTP (development only) |
 | `ALLOWED_HOSTS` | Comma-separated list used both as CORS origins and as trusted hosts (trusted host check is skipped when set to `*`) |
-| `KEYCLOAK_SERVER_URL` | Keycloak / Windfire Security server URL |
+| `KEYCLOAK_DEV_HOST` / `KEYCLOAK_DEV_PORT` | Development Keycloak / Windfire Security auth server (default `localhost:8444`) |
+| `KEYCLOAK_TEST_HOST` / `KEYCLOAK_TEST_PORT` | Test Keycloak / Windfire Security auth server (default `localhost:8444`) |
+| `KEYCLOAK_PROD_HOST` / `KEYCLOAK_PROD_PORT` | Production Keycloak / Windfire Security auth server (default `raspberry01:8444`) |
 | `KEYCLOAK_SERVICE` | Service (client) name used when verifying Bearer tokens |
 | `DEFAULT_LOG_LEVEL` | `DEBUG`, `INFO`, `WARNING`, `ERROR` or `CRITICAL`; overridden by the `LOG_LEVEL` environment variable |
 | `DEFAULT_LOG_FILE` | Log file path, e.g. `logs/windfire_calendar.log` |
@@ -95,7 +97,7 @@ Configuration is read from **app/.env** (loaded with python-dotenv). Copy [app/.
 
 Relative paths for the Google OAuth files are resolved against the `app/` directory. Logs are written **only to the log file**, not to the console.
 
-The start scripts also pass these environment variables to the API server: `ENVIRONMENT` (`dev`, `test` or `prod`), `LOG_LEVEL`, `KEYCLOAK_CLIENT_SECRET`, `VERIFY_SSL_CERTS` and `ROOT_CA_PATH` (Windfire Root CA certificate, default `$HOME/opt/windfire/ssl/truststore/WindfireRootCA.crt`).
+The start scripts also pass these environment variables to the API server: `ENVIRONMENT` (`dev`, `test` or `prod`), `KEYCLOAK_ENVIRONMENT`, `KEYCLOAK_SERVER_HOST` / `KEYCLOAK_SERVER_PORT` (resolved from the `KEYCLOAK_<ENV>_HOST/PORT` keys above), `LOG_LEVEL`, `KEYCLOAK_CLIENT_SECRET`, `VERIFY_SSL_CERTS` and `ROOT_CA_PATH` (Windfire Root CA certificate, default `$HOME/opt/windfire/ssl/truststore/WindfireRootCA.crt`).
 
 ## Configure Google Calendar API credentials
 The application authenticates to Google Calendar with OAuth and read-only scope (`calendar.readonly`). It needs an OAuth client file (**credentials.json**) that is not part of the repository:
@@ -131,16 +133,17 @@ Dates in the future are rejected and the user is asked again. Event names are us
 ### Start and stop
 ```bash
 cd app
-./run-apicalendar.sh [1|2|3] [--LOG_LEVEL LEVEL]
+./run-apicalendar.sh [1|2|3] [--KEYCLOAK_ENV ENV] [--LOG_LEVEL LEVEL]
 ```
 * `1|2|3` selects the environment (Development, Test, Production); if omitted you are asked for it
+* `--KEYCLOAK_ENV` selects the Keycloak environment used for authentication: `dev`, `test` or `prod` (or `1|2|3`); if omitted you are asked for it, and pressing Enter selects **Production**. Host and port are read from `KEYCLOAK_<ENV>_HOST` / `KEYCLOAK_<ENV>_PORT` in `app/.env`
 * `--LOG_LEVEL` overrides `DEFAULT_LOG_LEVEL` (e.g. `DEBUG`, `ERROR`)
 * `-h`/`--help` shows the help, `-v`/`--version` shows the version
 
 The script ([run-apicalendar.sh](app/run-apicalendar.sh)) prepares the virtual environment, asks for the **Keycloak client secret** (unless `KEYCLOAK_CLIENT_SECRET` is already exported) and starts [calendarApiServer.py](app/calendarApiServer.py) with Uvicorn.
 
 Other scripts:
-* **[run-apicalendar-background.sh](app/run-apicalendar-background.sh)**: starts the server in background in the Production environment, redirecting output to `app/logs/windfire-calendar.log`
+* **[run-apicalendar-background.sh](app/run-apicalendar-background.sh)**: accepts the same arguments as `run-apicalendar.sh`, asks up front for the environment, the Keycloak environment and the client secret (when not given), then starts the server in background, redirecting output to `app/logs/windfire-calendar.log`
 * **[stop-apicalendar.sh](app/stop-apicalendar.sh)**: finds the `calendarApiServer.py` process and sends it `SIGTERM`; if it is still running after 10 seconds, it is force-killed with `SIGKILL`
 
 ### HTTP vs HTTPS
@@ -183,10 +186,10 @@ Errors are returned as JSON: `422` for malformed request bodies (e.g. missing `e
 The [test/](test/) folder contains a client that calls every endpoint of a running server over HTTPS.
 ```bash
 cd test
-./run-test.sh [-p PORT]
+./run-test.sh [-p PORT] [-e 1|2|3]
 ```
 The script creates the `windfire-calendar-test` virtual environment, then asks for:
-* the environment: Development and Test target `https://localhost:<PORT>`, Production targets `https://raspberry02:<PORT>` (override with `HTTPS_CALENDAR_SERVER_URL`)
+* the environment, unless passed with `-e`/`--env`: Development and Test target `https://localhost:<PORT>`, Production targets `https://raspberry02:<PORT>` (override with `HTTPS_CALENDAR_SERVER_URL`)
 * username (default `windfire`), password and authentication service (default `windfire-calendar-srv`)
 
 [test.py](test/test.py) then:
@@ -236,4 +239,6 @@ cd deployment
 
 Deployment variables (user, folders, certificate names, process name) are in [deployment/raspberry/conf/config.yaml](deployment/raspberry/conf/config.yaml).
 
-The playbook does not start the service. After deploying, start it on the Pi from `/home/pi/windfire-calendar/app` with `./run-apicalendar.sh 3` or `./run-apicalendar-background.sh`.
+The playbook does not start the service. After deploying, start it on the Pi from `/home/pi/windfire-calendar/app` with `./run-apicalendar.sh 3 --KEYCLOAK_ENV prod` or `./run-apicalendar-background.sh 3 --KEYCLOAK_ENV prod`.
+
+> **Note:** the Keycloak host/port selection requires the windfire-security-client version that honours `KEYCLOAK_SERVER_HOST` / `KEYCLOAK_SERVER_PORT`. Production installs the client wheel from `$HOME/dist`, so rebuild it with `./createModule.sh` in `windfire-security-client` and redeploy after updating the client; older wheels ignore these variables and always use their built-in host for the environment.

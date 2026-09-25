@@ -17,20 +17,25 @@ main()
     echo    4. Run the Windfire Calendar application
     echo 
 
+    # Select environment before creating the venv, so prerequisites match the chosen environment
+    selectEnvironment "$1"
+
     # Source createPythonVenv.sh script to create and activate Python Virtual Environment
-    source ./createPythonVenv.sh
+    source ./createPythonVenv.sh "$ENVIRONMENT_SELECTION"
+
+    # createPythonVenv.sh re-sources ../common.sh, which resets ENVIRONMENT: restore it from the selection
+    setEnvironment
 
     # Invoke run() function to run the Calendar Management application
-    run $1
+    run
 }
 
 # ===== TERMINAL APPLICATION RUN FUNCTION =====
 run()
 {
-    selectEnvironment $1
     echo -e "${CYAN}Running calendar manager in environment : $ENVIRONMENT${RESET}"
     ENVIRONMENT=$ENVIRONMENT python3 calendarMgr.py
 }
 
 # ===== EXECUTION =====
-main $1
+main "$@"

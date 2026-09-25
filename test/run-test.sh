@@ -24,7 +24,7 @@ main()
 # ===== TEST APPLICATION RUN FUNCTION =====
 run()
 {
-    selectEnvironment $1
+    selectEnvironment "$RUN_ENVIRONMENT"
     getCredentials
 
     # Show configuration
@@ -62,6 +62,18 @@ parse_args() {
                 PORT="$2"
                 shift 2
                 ;;
+            -e|--env)
+                case $2 in
+                    1|2|3)
+                        RUN_ENVIRONMENT="$2"
+                        shift 2
+                        ;;
+                    *)
+                        echo -e "${RED}Error: --env requires one of 1|2|3${RESET}"
+                        exit 1
+                        ;;
+                esac
+                ;;
             -h|--help)
                 print_help
                 exit 0
@@ -78,6 +90,7 @@ parse_args() {
 # ===== CONFIGURATION DISPLAY FUNCTION =====
 display_config() {
     echo -e "${BOLD}${GREEN}Configuration Summary:${RESET}"
+    echo -e "  Environment:    ${YELLOW}$ENVIRONMENT${RESET}"
     echo -e "  Port:           ${YELLOW}$PORT${RESET}"
     echo
 }
@@ -99,20 +112,26 @@ print_help() {
     echo -e "    4. Run the Windfire Calendar test application"
     echo
     echo -e "${BOLD}USAGE:${RESET}"
-    echo -e "    ./test.sh [OPTIONS]"
+    echo -e "    ./run-test.sh [OPTIONS]"
     echo
     echo -e "${BOLD}OPTIONS:${RESET}"
     echo -e "    -p, --port PORT            Specify port on which Windfire Calendar server runs (1-65535)"
     echo -e "                               Default: 8000 (for HTTP) / 8443 (for HTTPS)"
     echo
+    echo -e "    -e, --env 1|2|3            Environment: 1=Development, 2=Test, 3=Production"
+    echo -e "                               Prompted if omitted"
+    echo
     echo -e "    -h, --help                 Display this help message and exit"
     echo
     echo -e "${BOLD}EXAMPLES:${RESET}"
     echo -e "    # Run with default settings"
-    echo -e "    ./test.sh"
+    echo -e "    ./run-test.sh"
     echo
     echo -e "    # Run tests of Windfire Calendar service running on custom port"
-    echo -e "    ./test.sh -p 9000"
+    echo -e "    ./run-test.sh -p 9000"
+    echo
+    echo -e "    # Run tests against the Test environment without prompting for it"
+    echo -e "    ./run-test.sh -e 2"
     echo
     echo -e "${BOLD}STARTUP STEPS:${RESET}"
     echo -e "    1. Create a Python Virtual Environment, if does not exist"
@@ -121,7 +140,7 @@ print_help() {
     echo -e "    4. Run the Windfire Calendar test application"
     echo
     echo -e "${BOLD}TROUBLESHOOTING:${RESET}"
-    echo -e "    • Permission denied: Run 'chmod +x start-auth-server.sh'"
+    echo -e "    • Permission denied: Run 'chmod +x run-test.sh'"
     echo -e "    • Module not found: Ensure createPythonVenv.sh is in the current directory"
     echo
     echo -e "${BOLD}========================================================${RESET}"

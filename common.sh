@@ -32,6 +32,11 @@ DEFAULT_AUTH_SERVICE_TEST=windfire-calendar-srv
 VERIFY_SSL_CERTS=true
 AUTH_SERVICE_TEST=$DEFAULT_AUTH_SERVICE_TEST
 
+# ===== KEYCLOAK CONFIGURATION VARIABLES =====
+KEYCLOAK_ENVIRONMENT=
+KEYCLOAK_SERVER_HOST=
+KEYCLOAK_SERVER_PORT=
+
 # ===== ROOT CA VARIABLES =====
 WINDFIRE_ROOT_CA_KEY="WindfireRootCA.key"
 WINDFIRE_ROOT_CA_CERTIFICATE="WindfireRootCA.crt"
@@ -70,6 +75,63 @@ setEnvironment()
 			selectEnvironment
 			;;
 	esac
+}
+
+# Function to read a single KEY=value from an env file (.env can't be sourced: values with spaces, inline comments)
+getEnvFileValue()
+{
+    local file=$1
+    local key=$2
+    local value
+    value=$(grep -E "^${key}=" "$file" 2>/dev/null | tail -n 1)
+    value=${value#*=}
+    value=${value%%#*}
+    value=$(echo "$value" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+    value=${value#[\"\']}
+    value=${value%[\"\']}
+    echo "$value"
+}
+
+# Function to select Keycloak environment used for authentication and resolve its host/port from ./.env
+selectKeycloakEnvironment()
+{
+    local option=$1
+    while true; do
+        if [[ -z "$option" ]]; then
+            echo -e "${BLU}Select Keycloak environment for authentication : ${RESET}"
+            echo -e "${BLU}1. Development${RESET}"
+            echo -e "${BLU}2. Test${RESET}"
+            echo -e "${BLU}3. Production [default]${RESET}"
+            read option
+            if [[ -z "$option" ]]; then
+                option=3
+            fi
+        fi
+        case $option in
+            1|dev)   KEYCLOAK_ENVIRONMENT=dev
+                     break
+                     ;;
+            2|test)  KEYCLOAK_ENVIRONMENT=test
+                     break
+                     ;;
+            3|prod)  KEYCLOAK_ENVIRONMENT=prod
+                     break
+                     ;;
+            *)       echo -e "${RED}No valid Keycloak environment option selected: $option${RESET}"
+                     option=
+                     ;;
+        esac
+    done
+
+    local envPrefix
+    envPrefix=$(echo "$KEYCLOAK_ENVIRONMENT" | tr '[:lower:]' '[:upper:]')
+    KEYCLOAK_SERVER_HOST=$(getEnvFileValue ./.env "KEYCLOAK_${envPrefix}_HOST")
+    KEYCLOAK_SERVER_PORT=$(getEnvFileValue ./.env "KEYCLOAK_${envPrefix}_PORT")
+    if [[ -z "$KEYCLOAK_SERVER_HOST" || -z "$KEYCLOAK_SERVER_PORT" ]]; then
+        echo -e "${RED}Error: KEYCLOAK_${envPrefix}_HOST and KEYCLOAK_${envPrefix}_PORT must be set in ./.env${RESET}"
+        exit 1
+    fi
+    echo -e "${CYAN}Keycloak environment : $KEYCLOAK_ENVIRONMENT ($KEYCLOAK_SERVER_HOST:$KEYCLOAK_SERVER_PORT)${RESET}"
 }
 
 # Function to securely input credentials
