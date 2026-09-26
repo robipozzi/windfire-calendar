@@ -149,9 +149,15 @@ class CalendarService:
 
   Returns:
     The number of events found.
+
+  Raises:
+    ValueError: If end_date is before start_date.
   """
   def countCalendarEvents(self, event_title, start_date, end_date):
     logger.debug(f"====> calendarService.countCalendarEvents(event_title, start_date, end_date) called <====")
+    if end_date < start_date:
+      logger.error(f"Invalid date range: end date {end_date} is before start date {start_date}")
+      raise ValueError(f"End date {end_date} is before start date {start_date}")
     self.authenticate()
     global credentials
     try:

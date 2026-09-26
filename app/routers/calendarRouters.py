@@ -41,6 +41,8 @@ async def count_events_by_year(
             start_date=start_date.isoformat(),
             end_date=end_date.isoformat()
         )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to count events: {str(e)}")
 
@@ -66,6 +68,8 @@ async def count_events_to_today(
             start_date=request.start_date.isoformat(),
             end_date=end_date.isoformat()
         )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to count events: {str(e)}")
 
@@ -93,6 +97,8 @@ async def count_events_by_range(
             start_date=request.start_date.isoformat(),
             end_date=request.end_date.isoformat()
         )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to count events: {str(e)}")
 

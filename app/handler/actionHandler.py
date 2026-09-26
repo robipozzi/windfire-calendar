@@ -54,6 +54,18 @@ def getDateInput():
     break
   return input_date
 
+def getEndDateInput(start_date):
+  logger.debug(f"====> actionHandler.getEndDateInput(start_date) called <====")
+  # Loop until an end date not before start date is provided
+  while True:
+    end_date = getDateInput()
+    if end_date < start_date:
+      logger.warning(f"End date {end_date} is before start date {start_date}")
+      print(Fore.RED + f"Invalid end date: {end_date} is before start date {start_date}")
+      print(Style.BRIGHT + Fore.WHITE + "Please try again.\n")
+      continue
+    return end_date
+
 def getEventInput():
   logger.debug(f"====> actionHandler.getEventInput() called <====")
   # Loop until valid event name is provided
@@ -106,7 +118,7 @@ def countCalendarEventsHandler():
   print(Style.BRIGHT + Fore.GREEN + f"You entered start date: {start_date}")
   # Get end date
   print(Style.BRIGHT + Fore.YELLOW + f"Enter end date")
-  end_date = getDateInput()
+  end_date = getEndDateInput(start_date)
   print(Style.BRIGHT + Fore.GREEN + f"You entered end date: {end_date}")
   #== Date input - END
   # Call Calendar events management service
