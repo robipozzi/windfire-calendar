@@ -17,14 +17,16 @@ main()
     # Create and activate virtual environment
     source ./createPythonVenv.sh
 
-    # Run test application
+    # Run test application and propagate its exit code (0 = all tests passed, 1 = failures)
     run
+    exit $?
 }
 
 # ===== TEST APPLICATION RUN FUNCTION =====
 run()
 {
     selectEnvironment "$RUN_ENVIRONMENT"
+    selectSecurityEnvironment "$RUN_SECURITY_ENVIRONMENT"
     getCredentials
 
     # Show configuration
@@ -32,26 +34,58 @@ run()
 
     echo -e "${YELLOW}Running test application${RESET}"
     
-    # Build Python command with optional flags
-    local python_cmd="python3 test.py"
-
-    if [ -z "${PORT}" ]; then
-        echo -e "${YELLOW}PORT is not set or is empty, running with default${RESET}"
-        python_cmd="python3 test.py"
-    else 
+    # Pass PORT only when it was given, otherwise test.py uses its default (8443)
+    if [ -n "${PORT}" ]; then
         echo -e "${YELLOW}PORT is set to $PORT${RESET}"
-        python_cmd=" PORT=$PORT python3 test.py"
+        export PORT
+    else
+        echo -e "${YELLOW}PORT is not set, test.py will use its default${RESET}"
+        unset PORT
     fi
 
-    # Set environment variables and run 
-    echo -e "${YELLOW}Run test application with: USERNAME=$USERNAME PASSWORD={***} SERVICE=$AUTH_SERVICE_TEST VERIFY_SSL_CERTS=$VERIFY_SSL_CERTS ENVIRONMENT=$ENVIRONMENT $python_cmd${RESET}"
+    # Set environment variables and run
+    echo -e "${YELLOW}Run test application with: USERNAME=$USERNAME PASSWORD={***} SERVICE=$AUTH_SERVICE_TEST VERIFY_SSL_CERTS=$VERIFY_SSL_CERTS ENVIRONMENT=$ENVIRONMENT SECURITY_ENVIRONMENT=$SECURITY_ENVIRONMENT ${PORT:+PORT=$PORT }python3 test.py${RESET}"
     USERNAME=$USERNAME \
     PASSWORD=$PASSWORD \
     SERVICE=$AUTH_SERVICE_TEST \
     VERIFY_SSL_CERTS=$VERIFY_SSL_CERTS \
     ENVIRONMENT=$ENVIRONMENT \
+    SECURITY_ENVIRONMENT=$SECURITY_ENVIRONMENT \
     ROOT_CA_PATH=$WINDFIRE_DEFAULT_TRUSTSTORE_DIR/$WINDFIRE_ROOT_CA_CERTIFICATE \
-    eval $python_cmd
+    python3 test.py
+}
+
+# ===== WINDFIRE SECURITY ENVIRONMENT SELECTION FUNCTION =====
+# Empty answer selects Production; host/port are resolved by test.py from ../app/.env
+selectSecurityEnvironment()
+{
+    local option=$1
+    while true; do
+        if [[ -z "$option" ]]; then
+            echo -e "${BLU}Select Windfire Security environment : ${RESET}"
+            echo -e "${BLU}1. Development${RESET}"
+            echo -e "${BLU}2. Test${RESET}"
+            echo -e "${BLU}3. Production [default]${RESET}"
+            read option
+            if [[ -z "$option" ]]; then
+                option=3
+            fi
+        fi
+        case $option in
+            1)  SECURITY_ENVIRONMENT=dev
+                break
+                ;;
+            2)  SECURITY_ENVIRONMENT=test
+                break
+                ;;
+            3)  SECURITY_ENVIRONMENT=prod
+                break
+                ;;
+            *)  echo -e "${RED}No valid Windfire Security environment option selected: $option${RESET}"
+                option=
+                ;;
+        esac
+    done
 }
 
 # ===== ARGUMENT PARSING FUNCTION =====
@@ -74,6 +108,18 @@ parse_args() {
                         ;;
                 esac
                 ;;
+            -s|--security-env)
+                case $2 in
+                    1|2|3)
+                        RUN_SECURITY_ENVIRONMENT="$2"
+                        shift 2
+                        ;;
+                    *)
+                        echo -e "${RED}Error: --security-env requires one of 1|2|3${RESET}"
+                        exit 1
+                        ;;
+                esac
+                ;;
             -h|--help)
                 print_help
                 exit 0
@@ -90,8 +136,9 @@ parse_args() {
 # ===== CONFIGURATION DISPLAY FUNCTION =====
 display_config() {
     echo -e "${BOLD}${GREEN}Configuration Summary:${RESET}"
-    echo -e "  Environment:    ${YELLOW}$ENVIRONMENT${RESET}"
-    echo -e "  Port:           ${YELLOW}$PORT${RESET}"
+    echo -e "  Windfire Calendar environment:  ${YELLOW}$ENVIRONMENT${RESET}"
+    echo -e "  Windfire Security environment:  ${YELLOW}$SECURITY_ENVIRONMENT${RESET}"
+    echo -e "  Port:                           ${YELLOW}${PORT:-8443 (default)}${RESET}"
     echo
 }
 
@@ -103,7 +150,8 @@ print_help() {
     echo -e "${BOLD}==================================${RESET}"
     echo
     echo -e "${BOLD}DESCRIPTION:${RESET}"
-    echo -e "    This script runs an application that tests Windfire Calendar APIs"
+    echo -e "    This script runs a test suite against Windfire Calendar APIs"
+    echo -e "    It prints a PASS/FAIL/SKIP summary and exits with 0 if all tests pass, 1 otherwise"
     echo
     echo -e "    The script will run the following steps:"
     echo -e "    1. Create a Python Virtual Environment, if does not exist"
@@ -116,10 +164,17 @@ print_help() {
     echo
     echo -e "${BOLD}OPTIONS:${RESET}"
     echo -e "    -p, --port PORT            Specify port on which Windfire Calendar server runs (1-65535)"
-    echo -e "                               Default: 8000 (for HTTP) / 8443 (for HTTPS)"
+    echo -e "                               Default: 8443"
     echo
-    echo -e "    -e, --env 1|2|3            Environment: 1=Development, 2=Test, 3=Production"
+    echo -e "    -e, --env 1|2|3            Windfire Calendar environment: 1=Development, 2=Test, 3=Production"
+    echo -e "                               1/2 -> https://localhost:<PORT>, 3 -> https://raspberry02:<PORT>"
     echo -e "                               Prompted if omitted"
+    echo
+    echo -e "    -s, --security-env 1|2|3   Windfire Security environment used to authenticate:"
+    echo -e "                               1=Development, 2=Test, 3=Production"
+    echo -e "                               1/2 -> KEYCLOAK_DEV/TEST_HOST:PORT in ../app/.env (localhost:8444)"
+    echo -e "                               3   -> https://raspberry01:8444"
+    echo -e "                               Prompted if omitted, empty answer selects Production"
     echo
     echo -e "    -h, --help                 Display this help message and exit"
     echo
@@ -132,6 +187,12 @@ print_help() {
     echo
     echo -e "    # Run tests against the Test environment without prompting for it"
     echo -e "    ./run-test.sh -e 2"
+    echo
+    echo -e "    # Test the local server, authenticating against the production Windfire Security server"
+    echo -e "    ./run-test.sh -e 1 -s 3"
+    echo
+    echo -e "    # Test production without any environment prompt"
+    echo -e "    ./run-test.sh -e 3 -s 3"
     echo
     echo -e "${BOLD}STARTUP STEPS:${RESET}"
     echo -e "    1. Create a Python Virtual Environment, if does not exist"

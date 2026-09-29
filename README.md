@@ -39,7 +39,7 @@ windfire-calendar/
 │   ├── ssl/                      # server certificate generation script and OpenSSL configs
 │   ├── .env_PLACEHOLDER          # template for app/.env
 │   └── *.sh                      # venv, run, start/stop scripts
-├── test/                         # REST API test client (test.py + scripts)
+├── test/                         # REST API test suite (test.py + scripts)
 ├── deployment/                   # deploy/undeploy scripts and Ansible playbooks for Raspberry Pi
 └── img/                          # images used by this README
 ```
@@ -183,23 +183,43 @@ Errors are returned as JSON: `422` for malformed request bodies (e.g. missing `e
 > **Note:** the REST API also uses Google OAuth. Run the terminal application (or the server) once on a machine with a browser to create `token.json`, then copy it along with `credentials.json`.
 
 ## Test the REST API
-The [test/](test/) folder contains a client that calls every endpoint of a running server over HTTPS.
+The [test/](test/) folder contains a test suite that checks every endpoint of a running server over HTTPS.
 ```bash
 cd test
-./run-test.sh [-p PORT] [-e 1|2|3]
+./run-test.sh [-p PORT] [-e 1|2|3] [-s 1|2|3]
 ```
 The script creates the `windfire-calendar-test` virtual environment, then asks for:
-* the environment, unless passed with `-e`/`--env`: Development and Test target `https://localhost:<PORT>`, Production targets `https://raspberry02:<PORT>` (override with `HTTPS_CALENDAR_SERVER_URL`)
+* the **Windfire Calendar** environment (the server under test), unless passed with `-e`/`--env`
+* the **Windfire Security** environment (the server that issues the access token), unless passed with `-s`/`--security-env`. An empty answer selects Production
 * username (default `windfire`), password and authentication service (default `windfire-calendar-srv`)
 
-[test.py](test/test.py) then:
-1. calls the health endpoint (no authentication)
-2. gets an access token from the Windfire Security service through `authClient.authenticate()`
-3. calls the count by year, count up to today, count by range and upcoming events endpoints, using the event title *"Palestra"*
+| Option | Windfire Calendar (`-e`) | Windfire Security (`-s`) |
+|---|---|---|
+| 1 Development | `https://localhost:<PORT>` | `KEYCLOAK_DEV_HOST:KEYCLOAK_DEV_PORT` from [app/.env](app/.env) (`https://localhost:8444`) |
+| 2 Test | `https://localhost:<PORT>` | `KEYCLOAK_TEST_HOST:KEYCLOAK_TEST_PORT` from [app/.env](app/.env) (`https://localhost:8444`) |
+| 3 Production | `https://raspberry02:<PORT>` | `https://raspberry01:8444` (**default**) |
 
-The server certificate is verified with the Windfire Root CA from `$HOME/opt/windfire/ssl/truststore/WindfireRootCA.crt` (`VERIFY_SSL_CERTS=true` in [common.sh](common.sh)).
+The two choices are independent, so you can for example test a local server that authenticates against production: `./run-test.sh -e 1 -s 3`.
 
-The default port is `8443`, matching `API_PORT_SECURE` in the `.env` template; pass `-p` if your server uses a different port.
+[test.py](test/test.py) can also be run directly inside the virtual environment. It picks each environment from its command-line argument (`--env`, `--security-env`), then from the `ENVIRONMENT` / `SECURITY_ENVIRONMENT` variables (`1|2|3` or `dev|test|prod`), and prompts only if neither is set. `--only <text>` runs just the tests whose group or name contains that text (e.g. `--only count/range`).
+
+Other environment variables:
+* `PORT`: Windfire Calendar port (default `8443`, matching `API_PORT_SECURE` in the `.env` template; `-p` sets it)
+* `HTTPS_CALENDAR_SERVER_URL`: replaces the whole Windfire Calendar URL
+* `EVENT_TITLE`: event title used by the count tests (default *"Palestra"*)
+* `VERIFY_SSL_CERTS` / `ROOT_CA_PATH`: the server certificates are verified with the Windfire Root CA from `$HOME/opt/windfire/ssl/truststore/WindfireRootCA.crt` (`VERIFY_SSL_CERTS=true` in [common.sh](common.sh))
+
+The suite covers:
+* **Monitor**: health, the `/` → `/docs` redirect, and that the OpenAPI document lists all 5 endpoints
+* **Security**: login with valid credentials (this token is used by the rest of the suite), and a wrong password returning no token
+* **Authorization**: every protected endpoint rejects a request with no Bearer header (401/403) or with a fake token (401)
+* **Security headers**: HSTS, `X-Content-Type-Options` and `X-Frame-Options` on protected responses
+* **count/year, count/today, count/range**: response schema and date ranges, plus the 400/422 errors for missing or invalid parameters
+* **Consistency**: the range 1 Jan → 31 Dec 2025 returns the same count as year 2025
+* **upcoming**: at most 10 events, `count` matches the list, each event has `id`, `summary`, `start` and `end`
+* **Method**: `GET` on a `POST` endpoint returns 405
+
+At the end it prints a PASS/FAIL/SKIP summary. Tests that need a token are skipped when authentication fails. `run-test.sh` exits with `0` when every test passes and `1` otherwise, so it can be used in scripts and CI.
 
 ## TLS certificates
 [app/ssl/generateServerCert.sh](app/ssl/generateServerCert.sh) creates a server private key and a certificate signed by the Windfire Root CA:
