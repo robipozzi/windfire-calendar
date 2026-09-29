@@ -3,7 +3,6 @@
 - hosts: calendar_service
   remote_user: "{{ user }}"
   become: yes
-  become_user: "{{ user }}"
   vars:
     src_dir: "{{ playbook_dir }}"
     mode: u=rwx
@@ -13,12 +12,21 @@
     #######################################################
     ##### Windfire Calendar service uninstall Section #####
     #######################################################
-    # Task 1: Stop Windfire Calendar service on remote server
+    # Task 1: Stop and disable Windfire Calendar service on remote server
+    - name: Stop and disable "{{ service_name }}" systemd service if running
+      systemd:
+        name: "{{ service_name }}"
+        state: stopped
+        enabled: no
+      ignore_errors: yes
+
+    # Fallback for processes started by hand with run-apicalendar*.sh
     - name: Get PID for running process "{{ process }}"
       shell: "pgrep -f {{ process }}"
       register: app_pid
       failed_when: app_pid.rc > 1
-    
+      changed_when: false
+
     - name: Kill "{{ process }}" process gracefully
       shell: "kill -TERM {{ item }}"
       with_items: "{{ app_pid.stdout_lines }}"
@@ -35,9 +43,23 @@
       with_items: "{{ app_pid.stdout_lines }}"
       when: app_pid.rc == 0
       ignore_errors: yes
-    
-    # Task 2: Delete Windfire Calendar directory on remote server
-    - name: Remove "{{ remote_windfire_calendar_dir }}" folder and all its contents on remote server 
+
+    # Task 2: Remove systemd unit and encrypted secrets
+    - name: Remove Windfire Calendar systemd unit file and encrypted secrets
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "/etc/systemd/system/{{ service_name }}.service"
+        - "/etc/credstore.encrypted/{{ service_name }}-secrets"
+
+    - name: Reload systemd after removing unit file
+      systemd:
+        daemon_reload: yes
+
+    # Task 3: Delete Windfire Calendar directory on remote server
+    # The shared Windfire Root CA, the windfire-security-client dist folder and /home/pi/logs are left in place
+    - name: Remove "{{ remote_windfire_calendar_dir }}" folder and all its contents on remote server
       ansible.builtin.file:
         path: "{{ remote_windfire_calendar_dir }}"
         state: absent

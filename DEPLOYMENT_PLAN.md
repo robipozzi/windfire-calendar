@@ -1,6 +1,6 @@
 # Windfire Calendar – Deployment Procedure Review & Enhancement Plan
 
-> **Status:** proposed, not yet implemented.
+> **Status:** implemented on branch `feature/deployment`; on-Pi verification (steps 4–8) still to run.
 
 ## Context
 

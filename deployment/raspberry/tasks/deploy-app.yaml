@@ -1,0 +1,280 @@
+---
+# Windfire Calendar deployment tasks, shared by windfire-calendar-deploy.yaml and windfire-calendar-full-deploy.yaml.
+# The play runs with become (root): tasks that write under the pi home folder either set owner/group
+# or run as the connecting user with "become: false", so parent folders are never created as root.
+
+# Task 0: Check that deploy.sh exported the Keycloak configuration and secret
+- name: Check Keycloak configuration and secret are set
+  ansible.builtin.assert:
+    that:
+      - keycloak_server_host | length > 0
+      - keycloak_server_port | length > 0
+      - keycloak_service | length > 0
+      - keycloak_client_secret | length > 0
+    fail_msg: "KEYCLOAK_SERVER_HOST, KEYCLOAK_SERVER_PORT, KEYCLOAK_SERVICE and KEYCLOAK_CLIENT_SECRET must be exported (run deployment/deploy.sh)"
+    quiet: true
+  no_log: true
+
+# Task 1: Stop Windfire Calendar service on remote server
+- name: Stop "{{ service_name }}" systemd service if running
+  ansible.builtin.systemd:
+    name: "{{ service_name }}"
+    state: stopped
+  failed_when: false
+
+# Fallback for processes started by hand with run-apicalendar*.sh before the systemd service existed
+- name: Get PID for running process "{{ process }}"
+  shell: "pgrep -f {{ process }}"
+  register: app_pid
+  failed_when: app_pid.rc > 1
+  changed_when: false
+
+- name: Kill "{{ process }}" process gracefully
+  shell: "kill -TERM {{ item }}"
+  with_items: "{{ app_pid.stdout_lines }}"
+  when: app_pid.rc == 0
+  register: kill_result
+  failed_when:
+    - kill_result.rc != 0
+    - '"No such process" not in kill_result.stderr'
+
+- name: Wait for "{{ process }}" process graceful termination
+  wait_for:
+    path: "/proc/{{ item }}/status"
+    state: absent
+  with_items: "{{ app_pid.stdout_lines }}"
+  when: app_pid.rc == 0
+  ignore_errors: yes
+
+# Task 2: Recreate Windfire Calendar directory on remote server
+- name: Remove "{{ remote_windfire_calendar_dir }}" folder and all its contents on remote server
+  ansible.builtin.file:
+    path: "{{ remote_windfire_calendar_dir }}"
+    state: absent
+
+- name: Create "{{ remote_windfire_calendar_dir }}" folder on remote server
+  ansible.builtin.file:
+    path: "{{ remote_windfire_calendar_dir }}"
+    state: directory
+    owner: "{{ user }}"
+    group: "{{ group }}"
+    mode: "0755"
+
+# Task 3: Copy Windfire Calendar server component to remote server
+# .env is templated (Task 4), Google files are copied with restricted permissions (Task 5), logs are created below
+- name: Copy Windfire Calendar server component to "{{ remote_windfire_calendar_dir }}" directory on remote server
+  ansible.builtin.synchronize:
+    src: "{{ src_dir }}/../../app"
+    dest: "{{ remote_windfire_calendar_dir }}"
+    rsync_opts:
+      - "--exclude=__pycache__"
+      - "--exclude=ssl/windfire-calendar.crt"
+      - "--exclude=ssl/windfire-calendar.key"
+      - "--exclude=windfire-calendar"
+      - "--exclude=.env_PLACEHOLDER"
+      - "--exclude=windfire-calendar.log*"
+      - "--exclude=.env"
+      - "--exclude=logs"
+      - "--exclude=token.json"
+      - "--exclude=credentials.json"
+  become: false
+
+- name: Create "{{ remote_windfire_calendar_dir }}/app/logs" directory on remote server
+  ansible.builtin.file:
+    path: "{{ remote_windfire_calendar_dir }}/app/logs"
+    state: directory
+    owner: "{{ user }}"
+    group: "{{ group }}"
+    mode: "0755"
+
+# Task 4: Template application configuration (non-secret values only)
+- name: Template "{{ remote_windfire_calendar_dir }}/app/.env" configuration file
+  ansible.builtin.template:
+    src: "{{ src_dir }}/templates/windfire-calendar.env.j2"
+    dest: "{{ remote_windfire_calendar_dir }}/app/.env"
+    owner: "{{ user }}"
+    group: "{{ group }}"
+    mode: "0600"
+
+# Task 5: Copy Google Calendar API credentials and TLS material to remote server
+- name: Copy Google Calendar API {{ item }} to "{{ remote_windfire_calendar_dir }}/app" directory on remote server
+  copy:
+    src: "{{ src_dir }}/../../app/{{ item }}"
+    dest: "{{ remote_windfire_calendar_dir }}/app/{{ item }}"
+    owner: "{{ user }}"
+    group: "{{ group }}"
+    mode: "0600"
+  loop:
+    - credentials.json
+    - token.json
+
+- name: Copy certificate {{ windfire_server_certificate }} from {{ local_certs_dir }} to "{{ remote_windfire_calendar_dir }}/app/ssl" directory on remote server
+  copy:
+    src: "{{ local_certs_dir }}/{{ windfire_server_certificate }}"
+    dest: "{{ remote_windfire_calendar_dir }}/app/ssl/{{ windfire_server_certificate }}"
+    owner: "{{ user }}"
+    group: "{{ group }}"
+    mode: "0644"
+
+- name: Copy key {{ windfire_server_key }} from {{ local_certs_dir }} to "{{ remote_windfire_calendar_dir }}/app/ssl" directory on remote server
+  copy:
+    src: "{{ local_certs_dir }}/{{ windfire_server_key }}"
+    dest: "{{ remote_windfire_calendar_dir }}/app/ssl/{{ windfire_server_key }}"
+    owner: "{{ user }}"
+    group: "{{ group }}"
+    mode: "0600"
+
+- name: Ensure remote truststore directory {{ remote_truststore_dir }} exists
+  file:
+    path: "{{ remote_truststore_dir }}"
+    state: directory
+    mode: "{{ mode }}"
+  become: false
+
+- name: Copy {{ windfire_ca_root_certificate }} to "{{ remote_truststore_dir }}" directory on remote server
+  copy:
+    src: "{{ local_truststore_dir }}/{{ windfire_ca_root_certificate }}"
+    dest: "{{ remote_truststore_dir }}/{{ windfire_ca_root_certificate }}"
+    owner: "{{ user }}"
+    group: "{{ group }}"
+    mode: "0644"
+
+# Task 6: Copy common.sh to remote server (app scripts source ../common.sh)
+- name: Copy common.sh to "{{ remote_windfire_calendar_dir }}" directory on remote server
+  copy:
+    src: "{{ src_dir }}/../../common.sh"
+    dest: "{{ remote_windfire_calendar_dir }}/common.sh"
+    owner: "{{ user }}"
+    group: "{{ group }}"
+    mode: "{{ mode }}"
+
+# Task 7: Copy custom Python module, create Python virtual environment and install required Python modules
+- name: Copy custom Python module directory to "{{ remote_home_dir }}" directory on remote server
+  ansible.builtin.synchronize:
+    src: "{{ src_dir }}/../../../windfire-security-client/dist"
+    dest: "{{ remote_home_dir }}"
+  become: false
+
+- name: Create Python virtual environment
+  command:
+    cmd: "{{ python_interpreter }} -m venv {{ venv_path }}"
+    creates: "{{ venv_path }}/bin/activate"
+  become: false
+
+- name: Verify virtualenv is properly configured
+  shell:
+    cmd: "source {{ venv_path }}/bin/activate && python --version"
+    executable: /bin/bash
+  register: python_version
+  changed_when: false
+  become: false
+
+- name: Display Python version in virtualenv
+  debug:
+    msg: "Python version in virtualenv: {{ python_version.stdout }}"
+
+- name: Install required Python modules in virtualenv by running {{ install_python_modules_script }} install script
+  shell: |
+    source {{ venv_path }}/bin/activate
+    bash ./{{ install_python_modules_script }} {{ env }}
+  args:
+    executable: /bin/bash
+    chdir: "{{ remote_windfire_calendar_dir }}/app"
+  become: false
+
+- name: List installed packages in virtualenv
+  shell:
+    cmd: "{{ venv_path }}/bin/pip list"
+  register: pip_list
+  changed_when: false
+  become: false
+
+- name: Display installed packages
+  debug:
+    var: pip_list.stdout_lines
+
+# Task 8: Encrypt secrets at rest with systemd-creds (plaintext never written to disk)
+- name: Build plaintext secrets blob for systemd-creds
+  set_fact:
+    windfire_secrets_blob: |
+      KEYCLOAK_CLIENT_SECRET={{ keycloak_client_secret | quote }}
+  no_log: true
+
+- name: Ensure /etc/credstore.encrypted directory exists
+  file:
+    path: /etc/credstore.encrypted
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Remove previous encrypted secrets credential, if any
+  file:
+    path: "/etc/credstore.encrypted/{{ service_name }}-secrets"
+    state: absent
+
+- name: Encrypt Windfire Calendar secrets with systemd-creds
+  command:
+    cmd: "systemd-creds encrypt --name={{ service_name }}-secrets --with-key=host - /etc/credstore.encrypted/{{ service_name }}-secrets"
+    stdin: "{{ windfire_secrets_blob }}"
+  no_log: true
+  notify: reload systemd
+
+# Task 9: Install systemd unit
+- name: Template Windfire Calendar systemd unit
+  template:
+    src: "{{ src_dir }}/templates/windfire-calendar.service.j2"
+    dest: "/etc/systemd/system/{{ service_name }}.service"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: reload systemd
+
+# Task 10: Start Windfire Calendar service
+- name: Reload systemd, enable and start "{{ service_name }}" service
+  systemd:
+    daemon_reload: yes
+    name: "{{ service_name }}"
+    state: started
+    enabled: yes
+
+# Task 11: Post-deploy health check
+- name: Check Windfire Calendar service health
+  block:
+    - name: Verify Windfire Calendar is listening on port {{ api_port_secure }}
+      wait_for:
+        port: "{{ api_port_secure }}"
+        host: 127.0.0.1
+        timeout: 30
+
+    - name: Call https://{{ health_check_host }}:{{ api_port_secure }}/v1/monitor/health
+      uri:
+        url: "https://{{ health_check_host }}:{{ api_port_secure }}/v1/monitor/health"
+        ca_path: "{{ remote_truststore_dir }}/{{ windfire_ca_root_certificate }}"
+        status_code: 200
+      register: health
+      until: health.status == 200
+      retries: 5
+      delay: 3
+  rescue:
+    - name: Get "{{ service_name }}" journal entries
+      command: "journalctl -u {{ service_name }} -n 50 --no-pager"
+      register: service_journal
+      changed_when: false
+      failed_when: false
+
+    - name: Get "{{ service_name }}" log file tail
+      command: "tail -n 50 {{ remote_windfire_calendar_dir }}/app/logs/{{ service_name }}.log"
+      register: service_log
+      changed_when: false
+      failed_when: false
+
+    - name: Display "{{ service_name }}" diagnostics
+      debug:
+        msg:
+          journal: "{{ service_journal.stdout_lines }}"
+          log: "{{ service_log.stdout_lines }}"
+
+    - name: Fail deployment
+      fail:
+        msg: "{{ service_name }} did not pass the health check, see diagnostics above"

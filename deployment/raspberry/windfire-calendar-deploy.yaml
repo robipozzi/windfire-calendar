@@ -3,147 +3,21 @@
 - hosts: calendar_service
   remote_user: "{{ user }}"
   become: yes
-  become_user: "{{ user }}"
   vars:
     src_dir: "{{ playbook_dir }}"
     mode: u=rwx
+    keycloak_server_host: "{{ lookup('env', 'KEYCLOAK_SERVER_HOST') }}"
+    keycloak_server_port: "{{ lookup('env', 'KEYCLOAK_SERVER_PORT') }}"
+    keycloak_service: "{{ lookup('env', 'KEYCLOAK_SERVICE') }}"
+    keycloak_client_secret: "{{ lookup('env', 'KEYCLOAK_CLIENT_SECRET') }}"
   vars_files:
     - "{{ src_dir }}/conf/config.yaml"
   tasks:
     #################################################################
     ##### Windfire Calendar server component deployment Section #####
     #################################################################
-    # Task 1: Stop Windfire Calendar service on remote server
-    - name: Get PID for running process "{{ process }}"
-      shell: "pgrep -f {{ process }}"
-      register: app_pid
-      failed_when: app_pid.rc > 1
-    
-    - name: Kill "{{ process }}" process gracefully
-      shell: "kill -TERM {{ item }}"
-      with_items: "{{ app_pid.stdout_lines }}"
-      when: app_pid.rc == 0
-      register: kill_result
-      failed_when:
-        - kill_result.rc != 0
-        - '"No such process" not in kill_result.stderr'
-
-    - name: Wait for "{{ process }}" process graceful termination
-      wait_for:
-        path: "/proc/{{ item }}/status"
-        state: absent
-      with_items: "{{ app_pid.stdout_lines }}"
-      when: app_pid.rc == 0
-      ignore_errors: yes
-    
-    # Task 2: Delete Windfire Calendar directory on remote server
-    - name: Remove "{{ remote_windfire_calendar_dir }}" folder and all its contents on remote server 
-      ansible.builtin.file:
-        path: "{{ remote_windfire_calendar_dir }}"
-        state: absent
-    
-    # Task 3: Create directory for application logs under remote server home directory
-    - name: Create logs directory under "{{ remote_home_dir }}"
-      ansible.builtin.file:
-        path: "{{ remote_home_dir }}/logs"
-        state: directory
-        owner: "{{ user }}"
-        group: "{{ group }}"
-        mode: "{{ mode }}"
-        recurse: yes
-
-    # Task 4: Create Windfire Calendar directory on remote server and copy files
-    - name: Copy Windfire Calendar server component to "{{ remote_windfire_calendar_dir }}" directory on remote server
-      ansible.builtin.synchronize:
-        src: "../../app"
-        dest: "{{ remote_windfire_calendar_dir }}"
-        rsync_opts:
-          - "--exclude=__pycache__"
-          - "--exclude=ssl/windfire-calendar.crt"
-          - "--exclude=ssl/windfire-calendar.key"
-          - "--exclude=windfire-calendar"
-          - "--exclude=.env_PLACEHOLDER"
-          - "--exclude=windfire-calendar.log*"
-    
-    # Task 5: Copy SSL certificate and key to remote server
-    - name: Copy certificate {{ windfire_server_certificate }} from {{ local_certs_dir }} to "{{ remote_windfire_calendar_dir }}/app/ssl" directory on remote server
-      copy:
-        src: "{{ local_certs_dir }}/{{ windfire_server_certificate }}"
-        dest: "{{ remote_windfire_calendar_dir }}/app/ssl"
-        owner: "{{ user }}"
-        group: "{{ group }}"
-        mode: "{{ mode }}"
-    - name: Copy key {{ windfire_server_key }} from {{ local_certs_dir }} to "{{ remote_windfire_calendar_dir }}/app/ssl" directory on remote server
-      copy:
-        src: "{{ local_certs_dir }}/{{ windfire_server_key }}"
-        dest: "{{ remote_windfire_calendar_dir }}/app/ssl"
-        owner: "{{ user }}"
-        group: "{{ group }}"
-        mode: "{{ mode }}"
-
-    # Task 6: Copy common.sh to remote server (app scripts source ../common.sh)
-    - name: Copy common.sh to "{{ remote_windfire_calendar_dir }}" directory on remote server
-      copy:
-        src: "../../common.sh"
-        dest: "{{ remote_windfire_calendar_dir }}"
-        owner: "{{ user }}"
-        group: "{{ group }}"
-        mode: "{{ mode }}"
-    
-    # Task 7: Ensure remote truststore directory exists and copy Windfire Root CA certificate
-    - name: Ensure remote truststore directory {{ remote_truststore_dir }} exists
-      file:
-        path: "{{ remote_truststore_dir }}"
-        state: directory
-        owner: "{{ user }}"
-        group: "{{ group }}"
-        mode: "{{ mode }}"
-        recurse: yes
-    - name: Copy {{ windfire_ca_root_certificate }} to "{{ remote_truststore_dir }}" directory on remote server
-      copy:
-        src: "{{ local_truststore_dir }}/{{ windfire_ca_root_certificate }}"
-        dest: "{{ remote_truststore_dir }}"
-        owner: "{{ user }}"
-        group: "{{ group }}"
-        mode: "{{ mode }}"
-        
-    # Task 8: Copy custom Python module to remote server
-    - name: Copy custom Python module directory to "{{ remote_home_dir }}" directory on remote server
-      ansible.builtin.synchronize:
-        src: "../../../windfire-security-client/dist"
-        dest: "{{ remote_home_dir }}"
-
-    # Task 9: Create Python virtual environment
-    - name: Create Python virtual environment
-      command:
-        cmd: "{{ python_interpreter }} -m venv {{ venv_path }}"
-        creates: "{{ venv_path }}/bin/activate"
-
-    # Task 10: Verify virtualenv installation
-    - name: Verify virtualenv is properly configured
-      shell:
-        cmd: "source {{ venv_path }}/bin/activate && python --version"
-        executable: /bin/bash
-      register: python_version
-      changed_when: false
-    - name: Display Python version in virtualenv
-      debug:
-        msg: "Python version in virtualenv: {{ python_version.stdout }}"
-    
-    # Task 11: Install required Python modules in virtualenv
-    - name: Install required Python modules in virtualenv by running {{ install_python_modules_script }} install script
-      shell: |
-        source {{ venv_path }}/bin/activate
-        bash {{ remote_windfire_calendar_dir }}/app/{{ install_python_modules_script }} {{ env }}
-      args:
-        executable: /bin/bash
-      
-    # Task 12: List installed packages
-    - name: List installed packages in virtualenv
-      shell:
-        cmd: "{{ venv_path }}/bin/pip list"
-      register: pip_list
-      changed_when: false
-    - name: Display installed packages
-      debug:
-        var: pip_list.stdout_lines
+    - import_tasks: tasks/deploy-app.yaml
+  handlers:
+    - name: reload systemd
+      systemd:
+        daemon_reload: yes

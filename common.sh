@@ -20,6 +20,12 @@ PLATFORM_OPTION=$1
 PLATFORM_SELECTED=false
 DEPLOY_PLATFORM=
 DEPLOY_FUNCTION=
+# Repository root (resolved from this file, so it works whatever the caller's working directory is)
+WINDFIRE_CALENDAR_HOME="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WINDFIRE_SERVER_CERTIFICATE=windfire-calendar.crt
+WINDFIRE_SERVER_KEY=windfire-calendar.key
+SECURITY_CLIENT_DIST_DIR=$WINDFIRE_CALENDAR_HOME/../windfire-security-client/dist
+ANSIBLE_SSH_KEY=$HOME/.ssh/ansible_rsa
 
 # ===== PYTHON VIRTUAL ENVIRONMENTS VARIABLES =====
 PYTHON_VIRTUAL_ENV=windfire-calendar
@@ -187,7 +193,10 @@ selectDeploymentPlatform()
     if [[ $PLATFORM_OPTION == "" && $PLATFORM_SELECTED == false ]]; then
         echo -e "${BLU}No platform option provided - Select deployment platform :${RESET}"
         echo -e "${GREEN}1. Raspberry${RESET}"
-        read PLATFORM_OPTION
+        if ! read PLATFORM_OPTION; then
+            echo -e "${RED}No input available to select deployment platform${RESET}"
+            exit 1
+        fi
         setDeploymentPlatform
     else
         echo -e "${CYAN}Platform option provided as argument: $PLATFORM_OPTION${RESET}"

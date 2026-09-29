@@ -40,7 +40,8 @@ windfire-calendar/
 │   ├── .env_PLACEHOLDER          # template for app/.env
 │   └── *.sh                      # venv, run, start/stop scripts
 ├── test/                         # REST API test suite (test.py + scripts)
-├── deployment/                   # deploy/undeploy scripts and Ansible playbooks for Raspberry Pi
+├── deployment/                   # deploy.sh / undeploy.sh for Raspberry Pi
+│   └── raspberry/                # Ansible playbooks, conf/config.yaml, tasks/ (shared deploy tasks), templates/ (.env and systemd unit)
 └── img/                          # images used by this README
 ```
 
@@ -239,26 +240,56 @@ It produces `windfire-calendar.key` and `windfire-calendar.crt`, valid for 365 d
 The Windfire Root CA must already exist: create it with `createRootCA.sh` in the windfire-security repository, which asks for the Root CA key passphrase that this script then needs to sign. The script stops if the Root CA certificate or key is missing, and checks the new certificate against the Root CA with `openssl verify`.
 
 ## Deploy to Raspberry Pi
-The [deployment/](deployment/) folder contains scripts that run Ansible playbooks against the `calendar_service` host group of your Ansible inventory (`/etc/ansible/hosts`), using the SSH key `$HOME/.ssh/ansible_rsa`.
+The [deployment/](deployment/) folder contains scripts that run Ansible playbooks against the `calendar_service` host group of your Ansible inventory (`/etc/ansible/hosts`), using the SSH key `$HOME/.ssh/ansible_rsa`. The service runs on the Pi as the `windfire-calendar` systemd service. The scripts work from any folder.
 ```bash
-cd deployment
-./deploy.sh [1]      # 1 = Raspberry
-./undeploy.sh [1]
+deployment/deploy.sh [1]          # 1 = Raspberry
+deployment/undeploy.sh [1] [-y]   # -y skips the confirmation prompt
+deployment/deploy.sh --help
 ```
-[windfire-calendar-deploy.yaml](deployment/raspberry/windfire-calendar-deploy.yaml) runs these steps:
-1. stops any running `calendarApiServer.py` process with `SIGTERM` and waits for it to terminate
-2. removes and recreates `/home/pi/windfire-calendar`, creating `/home/pi/logs` too
-3. copies the `app/` folder (excluding caches, the local venv, local certificates, log files and `.env_PLACEHOLDER`). Your local `app/.env`, `credentials.json` and `token.json` are copied as well, so prepare them before deploying
-4. copies the production server certificate and key from `$HOME/opt/windfire/ssl/certs/raspberry`
-5. copies [common.sh](common.sh) next to the `app/` folder, since the app scripts source `../common.sh`
-6. copies the Windfire Root CA certificate to the remote truststore
-7. copies the windfire-security-client `dist` folder (from `../windfire-security-client/dist`, next to this repo) to the remote home folder
-8. creates the virtual environment on the Pi and installs the prerequisites with `installPrereqs.sh 3`
 
-[windfire-calendar-full-deploy.yaml](deployment/raspberry/windfire-calendar-full-deploy.yaml) runs the same tasks after updating and upgrading the system packages with apt and installing OpenSSL. `deploy.sh` doesn't run it; run it directly with `ANSIBLE_CONFIG=raspberry/ansible.cfg ansible-playbook raspberry/windfire-calendar-full-deploy.yaml` from the `deployment/` folder. [windfire-calendar-undeploy.yaml](deployment/raspberry/windfire-calendar-undeploy.yaml) stops the service and removes its folder.
+### What you need before deploying
+* Ansible installed locally (`ansible-playbook` on `PATH`) and the SSH key `$HOME/.ssh/ansible_rsa`
+* the Windfire Root CA in `$HOME/opt/windfire/ssl/truststore` (create it with `createRootCA.sh` in windfire-security)
+* the windfire-security-client wheel in `../windfire-security-client/dist` (build it with `./createModule.sh` in that repository)
+* `app/credentials.json` and `app/token.json` (see [Configure Google Calendar API credentials](#configure-google-calendar-api-credentials); run the app locally once to create `token.json`)
+* the Keycloak client secret of the `windfire-calendar-srv` client
 
-Deployment variables (user, folders, certificate names, process name) are in [deployment/raspberry/conf/config.yaml](deployment/raspberry/conf/config.yaml).
+The production certificate and key are generated for you if they are missing. Your local `app/.env` is not copied: the Pi gets its own `.env` built from the template.
 
-The playbook does not start the service. After deploying, start it on the Pi from `/home/pi/windfire-calendar/app` with `./run-apicalendar.sh 3 --KEYCLOAK_ENV prod` or `./run-apicalendar-background.sh 3 --KEYCLOAK_ENV prod`.
+### What `deploy.sh` does
+1. **Pre-flight checks**: checks for `ansible-playbook`, the SSH key, the Windfire Root CA, the windfire-security-client wheel and the Google files, and stops with a red error if one is missing. If `windfire-calendar.crt` / `.key` are missing from `$HOME/opt/windfire/ssl/certs/raspberry`, it runs [generateServerCert.sh](app/ssl/generateServerCert.sh): choose **3. Production** when asked.
+2. **Secrets**: asks once for the Keycloak host, port and service (defaults are the `KEYCLOAK_PROD_HOST`, `KEYCLOAK_PROD_PORT` and `KEYCLOAK_SERVICE` values in your local `app/.env`) and for the Keycloak client secret, which is not echoed. If `KEYCLOAK_CLIENT_SECRET` is already exported, it is used without asking.
+3. **Playbook**: runs [windfire-calendar-deploy.yaml](deployment/raspberry/windfire-calendar-deploy.yaml), which uses the shared tasks in [tasks/deploy-app.yaml](deployment/raspberry/tasks/deploy-app.yaml):
+   1. stops the `windfire-calendar` service, and any `calendarApiServer.py` process started by hand
+   2. removes and recreates `/home/pi/windfire-calendar`, and copies the `app/` folder (without caches, the local venv, certificates, logs, `.env` and the Google files)
+   3. builds `app/.env` from [windfire-calendar.env.j2](deployment/raspberry/templates/windfire-calendar.env.j2) with non-secret values only (mode `0600`)
+   4. copies `credentials.json` and `token.json` (mode `0600`), the server certificate (`0644`) and key (`0600`), and the Windfire Root CA
+   5. copies [common.sh](common.sh) and the windfire-security-client `dist` folder, creates the virtual environment and runs `installPrereqs.sh 3`
+4. **systemd**: encrypts the Keycloak client secret with `systemd-creds` into `/etc/credstore.encrypted/windfire-calendar-secrets` (it is never stored in plaintext on the Pi), installs the unit from [windfire-calendar.service.j2](deployment/raspberry/templates/windfire-calendar.service.j2), then enables and starts the service. systemd restarts it 5 seconds after a failure and starts it at boot.
+5. **Health check**: waits for port 8443 and calls `https://raspberry02:8443/v1/monitor/health`, checking the certificate against the Windfire Root CA. If the check fails, it prints the last 50 lines of the journal and of the service log, and the deploy fails.
+
+`deploy.sh` prints a green message on success. On any failure it prints a red message and exits with code 1.
+
+[windfire-calendar-full-deploy.yaml](deployment/raspberry/windfire-calendar-full-deploy.yaml) runs the same tasks after updating and upgrading the system packages with apt and installing OpenSSL. `deploy.sh` doesn't run it. To run it, export `KEYCLOAK_SERVER_HOST`, `KEYCLOAK_SERVER_PORT`, `KEYCLOAK_SERVICE` and `KEYCLOAK_CLIENT_SECRET`, then run `ANSIBLE_CONFIG=raspberry/ansible.cfg ansible-playbook raspberry/windfire-calendar-full-deploy.yaml` from the `deployment/` folder. The playbook stops early if one of these variables is empty.
+
+Deployment variables (user, folders, certificate names, ports, allowed hosts, log level) are in [deployment/raspberry/conf/config.yaml](deployment/raspberry/conf/config.yaml). `health_check_host` must match the certificate SAN and be listed in `allowed_hosts`.
+
+### Operate the service on the Pi
+```bash
+sudo systemctl status windfire-calendar
+sudo systemctl restart windfire-calendar
+sudo systemctl stop windfire-calendar
+```
+Logs are in `/home/pi/windfire-calendar/app/logs`: `windfire-calendar.log` has the process stdout/stderr, and `windfire_calendar.log` is the application log, rotated daily. `journalctl -u windfire-calendar` shows start, stop and restart events. The `run-apicalendar*.sh` and `stop-apicalendar.sh` scripts are for local development and test only.
+
+A redeploy overwrites `token.json` on the Pi with your local copy.
+
+### Undeploy
+`undeploy.sh` asks for confirmation (skip it with `-y`), then runs [windfire-calendar-undeploy.yaml](deployment/raspberry/windfire-calendar-undeploy.yaml), which:
+1. stops and disables the `windfire-calendar` service, and stops any `calendarApiServer.py` process started by hand
+2. removes the systemd unit and the encrypted secret, then reloads systemd
+3. removes `/home/pi/windfire-calendar`
+
+The Windfire Root CA, the windfire-security-client `dist` folder and `/home/pi/logs` are left in place because other services use them.
 
 > **Note:** the Keycloak host/port selection requires the windfire-security-client version that honours `KEYCLOAK_SERVER_HOST` / `KEYCLOAK_SERVER_PORT`. Production installs the client wheel from `$HOME/dist`, so rebuild it with `./createModule.sh` in `windfire-security-client` and redeploy after updating the client; older wheels ignore these variables and always use their built-in host for the environment.

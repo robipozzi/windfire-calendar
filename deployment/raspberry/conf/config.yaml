@@ -1,6 +1,6 @@
 user: pi
 group: pi
-local_home_dir: /Users/robertopozzi
+local_home_dir: "{{ lookup('env', 'HOME') }}"
 local_ssl_dir: "{{ local_home_dir }}/opt/windfire/ssl"
 local_truststore_dir: "{{ local_ssl_dir }}/truststore"
 local_certs_dir: "{{ local_ssl_dir }}/certs/raspberry"
@@ -19,3 +19,15 @@ run_server_script: run-apicalendar.sh
 stop_server_script: stop-apicalendar.sh
 process: calendarApiServer.py
 env: 3
+# systemd service and application (.env) configuration
+service_name: windfire-calendar
+app_name: Windfire Calendar Service API
+api_port: 8000
+api_port_secure: 8443
+allowed_hosts: raspberry02,localhost
+health_check_host: raspberry02
+log_level: INFO
+log_file: logs/windfire_calendar.log
+log_backup_count: 7
+log_rotation_when: midnight
+log_rotation_interval: 1
