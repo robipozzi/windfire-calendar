@@ -131,6 +131,10 @@ def countCalendarEventsHandler():
 def getUpcomingEventsHandler():
   logger.debug(f"====> actionHandler.getUpcomingEventsHandler() called <====")
   events = calendarSrv.getUpcomingEvents()
+  # getUpcomingEvents() returns None when the Google Calendar API call fails
+  if not events:
+    print(Style.BRIGHT + Fore.YELLOW + "No upcoming events found.")
+    return
   # Prints the start and name of the next 10 events
   for event in events:
     start = event["start"].get("dateTime", event["start"].get("date"))

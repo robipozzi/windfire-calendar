@@ -46,14 +46,14 @@ windfire-calendar/
 ```
 
 ## Prerequisites
-* **Python 3** with the `venv` module
+* **Python 3.11 or later** with the `venv` module (the API server uses `datetime.UTC`)
 * A **Google account** and a Google Cloud project with the Google Calendar API enabled (see [Configure Google Calendar API credentials](#configure-google-calendar-api-credentials))
 * The **windfire-security-client** Python package (module `client.authClient`), used by the REST API and by the test client to authenticate and verify tokens. The install scripts expect it:
   * in **development/test**: as source code in `$HOME/dev/windfire-security-client` (installed in editable mode, `pip install -e`)
   * in **production** (environment option `3`): as a wheel in `$HOME/dist/client-1.0.0-py3-none-any.whl`
 * For the REST API: a reachable **Keycloak** / Windfire Security service and its client secret
-* For HTTPS: the **Windfire Root CA** key and certificate (see [TLS certificates](#tls-certificates))
-* For deployment: **Ansible** and SSH access to the Raspberry Pi
+* For HTTPS: **OpenSSL** and the **Windfire Root CA** key and certificate (see [TLS certificates](#tls-certificates))
+* For deployment: **Ansible**, **rsync** and SSH access to the Raspberry Pi (see [What you need before deploying](#what-you-need-before-deploying))
 
 ## Python Virtual Environment
 The project uses Python Virtual Environments, so that all Python dependencies are isolated from the system-wide installation. Have a look at https://www.hostinger.com/tutorials/how-to-create-a-python-virtual-environment for more information.
@@ -83,20 +83,21 @@ Configuration is read from **app/.env** (loaded with python-dotenv). Copy [app/.
 | `API_PORT_SECURE` | HTTPS port, used when HTTPS is enabled (default in template: `8443`) |
 | `SSL_KEYFILE` / `SSL_CERTFILE` | Server private key and certificate paths, e.g. `./ssl/windfire-calendar.key` / `./ssl/windfire-calendar.crt` |
 | `ENFORCE_HTTPS` | `true` to serve over HTTPS and redirect HTTP requests to HTTPS; `false` for plain HTTP (development only) |
-| `ALLOWED_HOSTS` | Comma-separated list used both as CORS origins and as trusted hosts (trusted host check is skipped when set to `*`) |
-| `KEYCLOAK_DEV_HOST` / `KEYCLOAK_DEV_PORT` | Development Keycloak / Windfire Security auth server (default `localhost:8444`) |
-| `KEYCLOAK_TEST_HOST` / `KEYCLOAK_TEST_PORT` | Test Keycloak / Windfire Security auth server (default `localhost:8444`) |
-| `KEYCLOAK_PROD_HOST` / `KEYCLOAK_PROD_PORT` | Production Keycloak / Windfire Security auth server (default `raspberry01:8444`) |
+| `ALLOWED_HOSTS` | Comma-separated list of trusted hostnames accepted in the `Host` header (check is skipped when set to `*`) |
+| `CORS_ORIGINS` | Optional comma-separated list of browser origins allowed to call the API, with scheme and port (e.g. `https://app.example.com:3000`). Empty or unset disables cross-origin requests |
+| `KEYCLOAK_DEV_HOST` / `KEYCLOAK_DEV_PORT` | Development Keycloak / Windfire Security auth server (e.g. `localhost` / `8444`) |
+| `KEYCLOAK_TEST_HOST` / `KEYCLOAK_TEST_PORT` | Test Keycloak / Windfire Security auth server (e.g. `localhost` / `8444`) |
+| `KEYCLOAK_PROD_HOST` / `KEYCLOAK_PROD_PORT` | Production Keycloak / Windfire Security auth server (e.g. `raspberry01` / `8444`) |
 | `KEYCLOAK_SERVICE` | Service (client) name used when verifying Bearer tokens |
 | `DEFAULT_LOG_LEVEL` | `DEBUG`, `INFO`, `WARNING`, `ERROR` or `CRITICAL`; overridden by the `LOG_LEVEL` environment variable |
-| `DEFAULT_LOG_FILE` | Log file path, e.g. `logs/windfire_calendar.log` |
+| `DEFAULT_LOG_FILE` | Log file path, e.g. `logs/windfire_calendar.log`. **Required**: there is no default |
 | `DEFAULT_LOG_ROTATION_WHEN` | When the log file is rotated (default `midnight`) |
 | `DEFAULT_LOG_ROTATION_INTERVAL` | Rotation interval, in units of `DEFAULT_LOG_ROTATION_WHEN` (default `1`) |
 | `DEFAULT_LOG_BACKUP_COUNT` | Number of rotated log files kept (default `7`) |
 | `GOOGLE_CREDENTIALS_FILE` | Google OAuth client file (default `credentials.json`) |
 | `GOOGLE_TOKEN_FILE` | Google OAuth token file (default `token.json`) |
 
-Relative paths for the Google OAuth files are resolved against the `app/` directory. Logs are written **only to the log file**, not to the console.
+The start scripts read only the host and port of the selected Keycloak environment and stop if either is empty. Relative paths for the Google OAuth files are resolved against the `app/` directory, while the log file path is relative to the working directory (`app/` when you use the scripts). Logs are written **only to the log file**, not to the console.
 
 The start scripts also pass these environment variables to the API server: `ENVIRONMENT` (`dev`, `test` or `prod`), `KEYCLOAK_ENVIRONMENT`, `KEYCLOAK_SERVER_HOST` / `KEYCLOAK_SERVER_PORT` (resolved from the `KEYCLOAK_<ENV>_HOST/PORT` keys above), `LOG_LEVEL`, `KEYCLOAK_CLIENT_SECRET`, `VERIFY_SSL_CERTS` and `ROOT_CA_PATH` (Windfire Root CA certificate, default `$HOME/opt/windfire/ssl/truststore/WindfireRootCA.crt`).
 
@@ -116,7 +117,7 @@ If `credentials.json` is missing, the terminal application prints these setup st
 cd app
 ./run-calendar.sh [1|2|3]
 ```
-The script creates and activates the virtual environment, installs prerequisites, asks for the environment (1 = Development, 2 = Test, 3 = Production) unless it is passed as argument, and runs [calendarMgr.py](app/calendarMgr.py).
+The script asks for the environment (1 = Development, 2 = Test, 3 = Production) unless it is passed as argument, creates and activates the virtual environment, installs prerequisites and runs [calendarMgr.py](app/calendarMgr.py). The environment also decides how windfire-security-client is installed: `3` uses the production wheel, `1` and `2` the editable source (see [Prerequisites](#prerequisites)).
 
 The program presents the following menu:
 
@@ -125,7 +126,7 @@ The program presents the following menu:
 1. **Count calendar events for a specific year**: asks for a year and an event name. For the current year it counts up to today; for past years up to December 31st. Future years are rejected
 2. **Count calendar events from start date up to today**: asks for a start date (day, month, year) and an event name
 3. **Count calendar events from start to end date**: asks for start date, end date and event name
-4. **List upcoming 10 events**: prints start time and title of the next 10 events
+4. **List upcoming 10 events**: prints start time and title of the next 10 events, or *"No upcoming events found."* if there are none
 5. **Exit**
 
 Dates in the future are rejected and the user is asked again. Event names are used as a free-text search (`q` parameter of the Google Calendar API) on the primary calendar, with recurring events expanded into single occurrences, up to 1000 events per query. After each operation the menu is shown again until you choose **Exit**.
@@ -149,7 +150,7 @@ Other scripts:
 
 ### HTTP vs HTTPS
 * If `ENFORCE_HTTPS=true` and both `SSL_KEYFILE` and `SSL_CERTFILE` are set, the server starts with **HTTPS on `API_PORT_SECURE`**. It exits if the key or certificate file does not exist
-* Otherwise it starts with **plain HTTP on `API_PORT`** and logs a warning
+* Otherwise it starts with **plain HTTP on `API_PORT`** and logs a warning. When running over plain HTTP, also set `ENFORCE_HTTPS=false`: with `ENFORCE_HTTPS=true` and no certificates, every request except the health check is redirected to `https://` on the HTTP port and fails
 
 With `ENFORCE_HTTPS=true`, HTTP requests (also checking the `X-Forwarded-Proto` and `X-Forwarded-SSL` headers set by proxies) are redirected to HTTPS with a `307`, except for the health endpoint `/v1/monitor/health`, which stays reachable over HTTP for load balancer checks. All other responses get security headers (`Strict-Transport-Security`, `X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`), and responses are GZip compressed.
 
@@ -159,12 +160,12 @@ Interactive API documentation (Swagger UI) is available at `/docs`; the root pat
 | Method | Path | Auth | Description |
 |---|---|---|---|
 | GET | `/v1/monitor/health` | No | Health check, returns `{"status": "healthy", "service": "<APP_NAME>"}` |
-| POST | `/v1/calendar/events/count/year` | Bearer | Count events for a year (`event_title`, `year` required) |
-| POST | `/v1/calendar/events/count/today` | Bearer | Count events from a start date up to today (`event_title`, `start_date` required) |
+| POST | `/v1/calendar/events/count/year` | Bearer | Count events for a year (`event_title`, `year` required). For the current year it counts up to today; future years return `400` |
+| POST | `/v1/calendar/events/count/today` | Bearer | Count events from a start date up to today (`event_title`, `start_date` required; a start date after today returns `400`) |
 | POST | `/v1/calendar/events/count/range` | Bearer | Count events between two dates (`event_title`, `start_date`, `end_date` required; `start_date` must not be after `end_date`) |
 | GET | `/v1/calendar/events/upcoming` | Bearer | Next 10 upcoming events |
 
-Calendar endpoints require an `Authorization: Bearer <token>` header. The token is verified remotely through the windfire-security-client module against the `KEYCLOAK_SERVICE` service; invalid or expired tokens get `401`.
+Calendar endpoints require an `Authorization: Bearer <token>` header. The token is verified remotely through the windfire-security-client module against the `KEYCLOAK_SERVICE` service. Requests without the header get `403`, and invalid or expired tokens get `401`.
 
 Example request:
 ```bash
@@ -179,7 +180,7 @@ Response:
 ```
 The upcoming events endpoint returns `{"events": [{"id", "summary", "start", "end", "description"}, ...], "count": N}`.
 
-Errors are returned as JSON: `422` for malformed request bodies (e.g. missing `event_title` or dates not in `YYYY-MM-DD` format), `400` for parameters missing for the specific endpoint or an invalid date range, `401` for authentication failures, `500` for errors while calling Google Calendar. HTTP errors include `detail`, `path` and `timestamp`.
+Errors are returned as JSON: `422` for malformed request bodies (e.g. missing `event_title` or dates not in `YYYY-MM-DD` format), `400` for parameters missing for the specific endpoint or an invalid date range, `401`/`403` for authentication failures, `500` for errors while calling Google Calendar. HTTP errors include `detail`, `path` and `timestamp`; unexpected errors return `500` with `detail` and `path` only.
 
 > **Note:** the REST API also uses Google OAuth. Run the terminal application (or the server) once on a machine with a browser to create `token.json`, then copy it along with `credentials.json`.
 
@@ -249,8 +250,10 @@ deployment/deploy.sh --help
 
 ### What you need before deploying
 * Ansible installed locally (`ansible-playbook` on `PATH`) and the SSH key `$HOME/.ssh/ansible_rsa`
+* `rsync` both locally and on the Pi (used by the Ansible `synchronize` module)
+* on the Pi: Python 3.11 or later and systemd with `systemd-creds` (systemd 250 or later, e.g. Raspberry Pi OS Bookworm)
 * the Windfire Root CA in `$HOME/opt/windfire/ssl/truststore` (create it with `createRootCA.sh` in windfire-security)
-* the windfire-security-client wheel in `../windfire-security-client/dist` (build it with `./createModule.sh` in that repository)
+* the windfire-security-client wheel in the `dist` folder of the sibling `windfire-security-client` repository (build it with `./createModule.sh` in that repository). The Pi installs it as `client-1.0.0-py3-none-any.whl`, so a wheel with a different version is copied but not installed
 * `app/credentials.json` and `app/token.json` (see [Configure Google Calendar API credentials](#configure-google-calendar-api-credentials); run the app locally once to create `token.json`)
 * the Keycloak client secret of the `windfire-calendar-srv` client
 
@@ -262,9 +265,9 @@ The production certificate and key are generated for you if they are missing. Yo
 3. **Playbook**: runs [windfire-calendar-deploy.yaml](deployment/raspberry/windfire-calendar-deploy.yaml), which uses the shared tasks in [tasks/deploy-app.yaml](deployment/raspberry/tasks/deploy-app.yaml):
    1. stops the `windfire-calendar` service, and any `calendarApiServer.py` process started by hand
    2. removes and recreates `/home/pi/windfire-calendar`, and copies the `app/` folder (without caches, the local venv, certificates, logs, `.env` and the Google files)
-   3. builds `app/.env` from [windfire-calendar.env.j2](deployment/raspberry/templates/windfire-calendar.env.j2) with non-secret values only (mode `0600`)
-   4. copies `credentials.json` and `token.json` (mode `0600`), the server certificate (`0644`) and key (`0600`), and the Windfire Root CA
-   5. copies [common.sh](common.sh) and the windfire-security-client `dist` folder, creates the virtual environment and runs `installPrereqs.sh 3`
+   3. builds `app/.env` from [windfire-calendar.env.j2](deployment/raspberry/templates/windfire-calendar.env.j2) with non-secret values only (mode `0600`). It sets `ENFORCE_HTTPS=true` and no `CORS_ORIGINS`, so cross-origin requests are disabled on the Pi; add `CORS_ORIGINS` to the template if a browser app needs to call the API
+   4. copies `credentials.json` and `token.json` (mode `0600`), the server certificate (`0644`) and key (`0600`) to `app/ssl`, and the Windfire Root CA to `/home/pi/opt/windfire/ssl/truststore`
+   5. copies [common.sh](common.sh) and the windfire-security-client `dist` folder (to `/home/pi/dist`), creates the virtual environment and runs `installPrereqs.sh 3`
 4. **systemd**: encrypts the Keycloak client secret with `systemd-creds` into `/etc/credstore.encrypted/windfire-calendar-secrets` (it is never stored in plaintext on the Pi), installs the unit from [windfire-calendar.service.j2](deployment/raspberry/templates/windfire-calendar.service.j2), then enables and starts the service. systemd restarts it 5 seconds after a failure and starts it at boot.
 5. **Health check**: waits for port 8443 and calls `https://raspberry02:8443/v1/monitor/health`, checking the certificate against the Windfire Root CA. If the check fails, it prints the last 50 lines of the journal and of the service log, and the deploy fails.
 

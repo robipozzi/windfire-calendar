@@ -97,7 +97,7 @@
     mode: "0600"
 
 # Task 5: Copy Google Calendar API credentials and TLS material to remote server
-- name: Copy Google Calendar API {{ item }} to "{{ remote_windfire_calendar_dir }}/app" directory on remote server
+- name: Copy Google Calendar API credentials to "{{ remote_windfire_calendar_dir }}/app" directory on remote server
   copy:
     src: "{{ src_dir }}/../../app/{{ item }}"
     dest: "{{ remote_windfire_calendar_dir }}/app/{{ item }}"
@@ -107,6 +107,8 @@
   loop:
     - credentials.json
     - token.json
+  loop_control:
+    label: "{{ item }}"
 
 - name: Copy certificate {{ windfire_server_certificate }} from {{ local_certs_dir }} to "{{ remote_windfire_calendar_dir }}/app/ssl" directory on remote server
   copy:

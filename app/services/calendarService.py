@@ -215,7 +215,6 @@ class CalendarService:
 
       if not events:
         logger.info("No upcoming events found.")
-        return
       return events
 
     except HttpError as error:

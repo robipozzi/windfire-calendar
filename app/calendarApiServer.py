@@ -22,7 +22,9 @@ logger = logger_factory.get_logger('calendarApiServer')
 SERVICE_NAME = settings.get('APP_NAME')
 # HTTPs enforcement and allowed hosts from config
 ENFORCE_HTTPS = settings.get('ENFORCE_HTTPS')
-ALLOWED_HOSTS = settings.get('ALLOWED_HOSTS').split(',')
+ALLOWED_HOSTS = [host.strip() for host in settings.get('ALLOWED_HOSTS').split(',') if host.strip()]
+# CORS origins are full origins (scheme://host[:port]) of browser apps calling the API, not hostnames
+CORS_ORIGINS = [origin.strip() for origin in (settings.get('CORS_ORIGINS') or '').split(',') if origin.strip()]
 # ========== END - VARIABLES SECTION ========== #
 
 @asynccontextmanager
@@ -51,10 +53,10 @@ app = FastAPI(
 # =======================================================================
 # ================== START - Enable CORS configuration ==================
 # =======================================================================
-origins=ALLOWED_HOSTS
+logger.info(f"CORS origins configured: {CORS_ORIGINS or 'none (cross-origin requests disabled)'}")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
