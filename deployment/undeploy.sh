@@ -97,6 +97,7 @@ undeployFromRaspberry()
     trap 'ssh-agent -k >/dev/null' EXIT
     ssh-add "$ANSIBLE_SSH_KEY" || { echo -e "${RED}Error: ssh-add $ANSIBLE_SSH_KEY failed${RESET}"; exit 1; }
     export ANSIBLE_CONFIG=$PWD/raspberry/ansible.cfg
+    echo -e "${YELLOW}Ansible will ask for the BECOME password: the sudo password of user pi on the Raspberry${RESET}"
     if ansible-playbook raspberry/windfire-calendar-undeploy.yaml; then
         echo -e "${GREEN}Windfire Calendar removed from Raspberry Pi${RESET}"
         echo
@@ -123,7 +124,7 @@ printHelp() {
     echo -e "1                       Deployment platform: 1=Raspberry (prompted if omitted)"
     echo
     echo -e "${BOLD}OPTIONS:${RESET}"
-    echo -e "-y, --yes               Do not ask for confirmation"
+    echo -e "-y, --yes               Do not ask for confirmation (the sudo password of user pi is still asked)"
     echo -e "-h, --help              Display this help message and exit"
     echo
     echo -e "${BOLD}EXIT CODES:${RESET}"

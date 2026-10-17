@@ -206,6 +206,7 @@ runPlaybook()
     trap 'ssh-agent -k >/dev/null' EXIT
     ssh-add "$ANSIBLE_SSH_KEY" || { echo -e "${RED}Error: ssh-add $ANSIBLE_SSH_KEY failed${RESET}"; exit 1; }
     export ANSIBLE_CONFIG=$PWD/raspberry/ansible.cfg
+    echo -e "${YELLOW}Ansible will ask for the BECOME password: the sudo password of user pi on the Raspberry${RESET}"
     if ansible-playbook "$playbook"; then
         echo -e "${GREEN}Windfire Calendar deployed and running on Raspberry Pi${RESET}"
         echo
@@ -241,7 +242,8 @@ printHelp() {
     echo -e "4. Check that the windfire-security-client wheel has been built"
     echo -e "5. Check app/credentials.json and app/token.json"
     echo -e "6. Ask for the Keycloak host, port, service and client secret"
-    echo -e "7. Run the Ansible playbook: deploy, start the systemd service and health-check it"
+    echo -e "7. Run the Ansible playbook (asks for the sudo password of user pi on the Raspberry):"
+    echo -e "   deploy, start the systemd service and health-check it"
     echo
     echo -e "${BOLD}ENVIRONMENT VARIABLES:${RESET}"
     echo -e "   KEYCLOAK_CLIENT_SECRET  Keycloak OAuth client secret (prompted if not set)"
