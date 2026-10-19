@@ -24,6 +24,8 @@ def resolvePath(path):
 
 CREDENTIALS_FILE = resolvePath(settings.get('GOOGLE_CREDENTIALS_FILE') or "credentials.json")
 TOKEN_FILE = resolvePath(settings.get('GOOGLE_TOKEN_FILE') or "token.json")
+# Interactive (browser) OAuth flow: keep enabled for local CLI use, disable on headless servers
+INTERACTIVE_AUTH = (settings.get('GOOGLE_INTERACTIVE_AUTH') or 'true').strip().lower() in ('true', '1', 'yes', 'on')
 
 CREDENTIALS_HELP = f"""Google OAuth client file not found: {CREDENTIALS_FILE}
 To create it:
@@ -82,6 +84,10 @@ class CalendarService:
       if not os.path.exists(CREDENTIALS_FILE):
           logger.error(f"Google OAuth client file not found: {CREDENTIALS_FILE}")
           raise FileNotFoundError(CREDENTIALS_HELP)
+      if not INTERACTIVE_AUTH:
+          message = f"Google token in {TOKEN_FILE} is expired or revoked; regenerate it locally (cd app && ./run-calendar.sh) and redeploy"
+          logger.error(f"Interactive Google authentication is disabled (GOOGLE_INTERACTIVE_AUTH=false). {message}")
+          raise RuntimeError(message)
       logger.info(f"Authenticating to Google using settings from {CREDENTIALS_FILE} ...")
       flow = InstalledAppFlow.from_client_secrets_file(CREDENTIALS_FILE, SCOPES)
       return flow.run_local_server(port=0)
