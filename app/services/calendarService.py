@@ -52,10 +52,17 @@ class CalendarService:
       try:
           # Authenticates the user and sets the global credentials variable.
           global credentials
+          # Headless server: refreshed tokens are kept in memory only (TOKEN_FILE is read-only),
+          # so reuse them while valid instead of reloading and refreshing the deployed token on every call
+          if not INTERACTIVE_AUTH and credentials and credentials.valid:
+              return
           creds = None
           # The file token.json stores the user's access and refresh tokens, and is
           # created automatically when the authorization flow completes for the first time.
-          if os.path.exists(TOKEN_FILE):
+          if not INTERACTIVE_AUTH and credentials:
+              # Expired in-memory credentials still hold the refresh token
+              creds = credentials
+          elif os.path.exists(TOKEN_FILE):
               logger.info(f"Getting credentials for Google from {TOKEN_FILE}")
               creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
           # If there are no (valid) credentials available, let the user log in.
@@ -70,10 +77,14 @@ class CalendarService:
                       creds = self._runOAuthFlow()
               else:
                   creds = self._runOAuthFlow()
-              # Save the credentials for the next run
-              with open(TOKEN_FILE, "w") as token:
-                  token.write(creds.to_json())
-                  logger.info(f"Credentials saved to {TOKEN_FILE}")
+              if INTERACTIVE_AUTH:
+                  # Save the credentials for the next run
+                  with open(TOKEN_FILE, "w") as token:
+                      token.write(creds.to_json())
+                      logger.info(f"Credentials saved to {TOKEN_FILE}")
+              else:
+                  # Headless server: TOKEN_FILE is in the read-only systemd credentials directory, never write it
+                  logger.info(f"Credentials refreshed in memory only, {TOKEN_FILE} is not updated")
 
           credentials = creds
       except HttpError:

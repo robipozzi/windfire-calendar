@@ -15,6 +15,31 @@
     quiet: true
   no_log: true
 
+# Check that the Google OAuth files exist locally before touching the Pi (they are encrypted in Task 8)
+- name: Check Google OAuth files exist locally in app/
+  ansible.builtin.stat:
+    path: "{{ src_dir }}/../../app/{{ item }}"
+  loop:
+    - credentials.json
+    - token.json
+  register: google_files
+  delegate_to: localhost
+  become: false
+  run_once: true
+
+- name: Fail if a Google OAuth file is missing locally
+  ansible.builtin.assert:
+    that:
+      - item.stat.exists
+    fail_msg: >-
+      app/{{ item.item }} is missing locally. Download credentials.json from Google Cloud Console into app/,
+      then run the app locally once (cd app && ./run-calendar.sh) to complete the OAuth consent and create token.json
+    quiet: true
+  loop: "{{ google_files.results }}"
+  loop_control:
+    label: "app/{{ item.item }}"
+  run_once: true
+
 # Task 1: Stop Windfire Calendar service on remote server
 - name: Stop "{{ service_name }}" systemd service if running
   ansible.builtin.systemd:
@@ -61,7 +86,7 @@
     mode: "0755"
 
 # Task 3: Copy Windfire Calendar server component to remote server
-# .env is templated (Task 4), Google files are copied with restricted permissions (Task 5), logs are created below
+# .env is templated (Task 4), Google files are never copied (they are encrypted in Task 8), logs are created below
 - name: Copy Windfire Calendar server component to "{{ remote_windfire_calendar_dir }}" directory on remote server
   ansible.builtin.synchronize:
     src: "{{ src_dir }}/../../app"
@@ -96,19 +121,15 @@
     group: "{{ group }}"
     mode: "0600"
 
-# Task 5: Copy Google Calendar API credentials and TLS material to remote server
-- name: Copy Google Calendar API credentials to "{{ remote_windfire_calendar_dir }}/app" directory on remote server
-  copy:
-    src: "{{ src_dir }}/../../app/{{ item }}"
-    dest: "{{ remote_windfire_calendar_dir }}/app/{{ item }}"
-    owner: "{{ user }}"
-    group: "{{ group }}"
-    mode: "0600"
+# Task 5: Remove plaintext Google OAuth files left by older deployments, then copy TLS material to remote server
+# credentials.json and token.json are encrypted with systemd-creds in Task 8 and never stored in plaintext on the Pi
+- name: Remove plaintext Google OAuth files from "{{ remote_windfire_calendar_dir }}/app" on remote server, if any
+  file:
+    path: "{{ remote_windfire_calendar_dir }}/app/{{ item }}"
+    state: absent
   loop:
     - credentials.json
     - token.json
-  loop_control:
-    label: "{{ item }}"
 
 - name: Copy certificate {{ windfire_server_certificate }} from {{ local_certs_dir }} to "{{ remote_windfire_calendar_dir }}/app/ssl" directory on remote server
   copy:
@@ -195,7 +216,7 @@
   debug:
     var: pip_list.stdout_lines
 
-# Task 8: Encrypt secrets at rest with systemd-creds (plaintext never written to disk)
+# Task 8: Encrypt secrets (Keycloak client secret, Google OAuth files) at rest with systemd-creds (plaintext never written to disk)
 - name: Build plaintext secrets blob for systemd-creds
   set_fact:
     windfire_secrets_blob: |
@@ -219,6 +240,26 @@
   command:
     cmd: "systemd-creds encrypt --name={{ service_name }}-secrets --with-key=host - /etc/credstore.encrypted/{{ service_name }}-secrets"
     stdin: "{{ windfire_secrets_blob }}"
+  no_log: true
+  notify: reload systemd
+
+# Google OAuth client (credentials.json) and token (token.json): read on the control node and encrypted on the Pi,
+# systemd decrypts them into the read-only credentials directory of the unit (see windfire-calendar.service.j2)
+- name: Remove previous encrypted Google OAuth credentials, if any
+  file:
+    path: "/etc/credstore.encrypted/{{ service_name }}-{{ item }}"
+    state: absent
+  loop:
+    - google-client
+    - google-token
+
+- name: Encrypt Google OAuth files with systemd-creds
+  command:
+    cmd: "systemd-creds encrypt --name={{ service_name }}-{{ item.name }} --with-key=host - /etc/credstore.encrypted/{{ service_name }}-{{ item.name }}"
+    stdin: "{{ lookup('ansible.builtin.file', src_dir ~ '/../../app/' ~ item.file) }}"
+  loop:
+    - { name: google-client, file: credentials.json }
+    - { name: google-token, file: token.json }
   no_log: true
   notify: reload systemd
 

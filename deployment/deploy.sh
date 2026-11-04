@@ -149,6 +149,8 @@ checkSecurityClientWheel()
     echo
 }
 
+# The Google OAuth files are never copied to the Pi in plaintext: the playbook encrypts them with
+# systemd-creds into /etc/credstore.encrypted (it checks they exist too, for runs without deploy.sh)
 checkAppConfig()
 {
     printBanner "Check Google Calendar API credentials"

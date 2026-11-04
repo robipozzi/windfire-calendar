@@ -96,6 +96,9 @@ Configuration is read from **app/.env** (loaded with python-dotenv). Copy [app/.
 | `DEFAULT_LOG_BACKUP_COUNT` | Number of rotated log files kept (default `7`) |
 | `GOOGLE_CREDENTIALS_FILE` | Google OAuth client file (default `credentials.json`) |
 | `GOOGLE_TOKEN_FILE` | Google OAuth token file (default `token.json`) |
+| `GOOGLE_INTERACTIVE_AUTH` | Run the browser consent flow when the token is missing or cannot be refreshed (default `true`). When `false`, the token file is never written: refreshed tokens are kept in memory only |
+
+On the Pi, `GOOGLE_CREDENTIALS_FILE` and `GOOGLE_TOKEN_FILE` are not in `.env`: the systemd unit sets them to the files it decrypts from `/etc/credstore.encrypted` (see [Deploy to Raspberry Pi](#deploy-to-raspberry-pi)).
 
 The start scripts read only the host and port of the selected Keycloak environment and stop if either is empty. Relative paths for the Google OAuth files are resolved against the `app/` directory, while the log file path is relative to the working directory (`app/` when you use the scripts). Logs are written **only to the log file**, not to the console.
 
@@ -182,7 +185,7 @@ The upcoming events endpoint returns `{"events": [{"id", "summary", "start", "en
 
 Errors are returned as JSON: `422` for malformed request bodies (e.g. missing `event_title` or dates not in `YYYY-MM-DD` format), `400` for parameters missing for the specific endpoint or an invalid date range, `401`/`403` for authentication failures, `500` for errors while calling Google Calendar. HTTP errors include `detail`, `path` and `timestamp`; unexpected errors return `500` with `detail` and `path` only.
 
-> **Note:** the REST API also uses Google OAuth. Run the terminal application (or the server) once on a machine with a browser to create `token.json`, then copy it along with `credentials.json`.
+> **Note:** the REST API also uses Google OAuth. Run the terminal application (or the server) once on a machine with a browser to create `token.json`, then deploy: `deploy.sh` encrypts it along with `credentials.json` on the Pi.
 
 ## Test the REST API
 The [test/](test/) folder contains a test suite that checks every endpoint of a running server over HTTPS.
@@ -255,7 +258,7 @@ deployment/deploy.sh --help
 * on the Pi: Python 3.11 or later and systemd with `systemd-creds` (systemd 250 or later, e.g. Raspberry Pi OS Bookworm)
 * the Windfire Root CA in `$HOME/opt/windfire/ssl/truststore` (create it with `createRootCA.sh` in windfire-security)
 * the windfire-security-client wheel in the `dist` folder of the sibling `windfire-security-client` repository (build it with `./createModule.sh` in that repository). The Pi installs it as `client-1.0.0-py3-none-any.whl`, so a wheel with a different version is copied but not installed
-* `app/credentials.json` and `app/token.json` (see [Configure Google Calendar API credentials](#configure-google-calendar-api-credentials); run the app locally once to create `token.json`)
+* `app/credentials.json` and `app/token.json` (see [Configure Google Calendar API credentials](#configure-google-calendar-api-credentials); run the app locally once to create `token.json`). Both `deploy.sh` and the playbook stop early if one is missing
 * the Keycloak client secret of the `windfire-calendar-srv` client
 
 The production certificate and key are generated for you if they are missing. Your local `app/.env` is not copied: the Pi gets its own `.env` built from the template.
@@ -265,11 +268,11 @@ The production certificate and key are generated for you if they are missing. Yo
 2. **Secrets**: asks once for the Keycloak host, port and service (defaults are the `KEYCLOAK_PROD_HOST`, `KEYCLOAK_PROD_PORT` and `KEYCLOAK_SERVICE` values in your local `app/.env`) and for the Keycloak client secret, which is not echoed. If `KEYCLOAK_CLIENT_SECRET` is already exported, it is used without asking.
 3. **Playbook**: asks for the `pi` sudo password (`BECOME password`), then runs [windfire-calendar-deploy.yaml](deployment/raspberry/windfire-calendar-deploy.yaml), which uses the shared tasks in [tasks/deploy-app.yaml](deployment/raspberry/tasks/deploy-app.yaml):
    1. stops the `windfire-calendar` service, and any `calendarApiServer.py` process started by hand
-   2. removes and recreates `/home/pi/windfire-calendar`, and copies the `app/` folder (without caches, the local venv, certificates, logs, `.env` and the Google files)
+   2. removes and recreates `/home/pi/windfire-calendar`, and copies the `app/` folder (without caches, the local venv, certificates, logs, `.env` and the Google files, which are never copied in plaintext)
    3. builds `app/.env` from [windfire-calendar.env.j2](deployment/raspberry/templates/windfire-calendar.env.j2) with non-secret values only (mode `0600`). It sets `ENFORCE_HTTPS=true` and no `CORS_ORIGINS`, so cross-origin requests are disabled on the Pi; add `CORS_ORIGINS` to the template if a browser app needs to call the API
-   4. copies `credentials.json` and `token.json` (mode `0600`), the server certificate (`0644`) and key (`0600`) to `app/ssl`, and the Windfire Root CA to `/home/pi/opt/windfire/ssl/truststore`
+   4. removes any plaintext `credentials.json` and `token.json` left in `app/` by older deployments, copies the server certificate (`0644`) and key (`0600`) to `app/ssl`, and the Windfire Root CA to `/home/pi/opt/windfire/ssl/truststore`
    5. copies [common.sh](common.sh) and the windfire-security-client `dist` folder (to `/home/pi/dist`), creates the virtual environment and runs `installPrereqs.sh 3`
-4. **systemd**: encrypts the Keycloak client secret with `systemd-creds` into `/etc/credstore.encrypted/windfire-calendar-secrets` (it is never stored in plaintext on the Pi), installs the unit from [windfire-calendar.service.j2](deployment/raspberry/templates/windfire-calendar.service.j2), then enables and starts the service. systemd restarts it 5 seconds after a failure and starts it at boot.
+4. **systemd**: encrypts with `systemd-creds --with-key=host` the Keycloak client secret into `/etc/credstore.encrypted/windfire-calendar-secrets`, and your local `app/credentials.json` and `app/token.json` into `/etc/credstore.encrypted/windfire-calendar-google-client` and `windfire-calendar-google-token` (none of them is stored in plaintext on the Pi). systemd decrypts them at start into the read-only credentials directory of the service, and the unit points `GOOGLE_CREDENTIALS_FILE` / `GOOGLE_TOKEN_FILE` there. It then installs the unit from [windfire-calendar.service.j2](deployment/raspberry/templates/windfire-calendar.service.j2), then enables and starts the service. systemd restarts it 5 seconds after a failure and starts it at boot.
 5. **Health check**: waits for port 8443 and calls `https://raspberry02:8443/v1/monitor/health`, checking the certificate against the Windfire Root CA. If the check fails, it prints the last 50 lines of the journal and of the service log, and the deploy fails.
 
 `deploy.sh` prints a green message on success. On any failure it prints a red message and exits with code 1.
@@ -286,12 +289,12 @@ sudo systemctl stop windfire-calendar
 ```
 Logs are in `/home/pi/windfire-calendar/app/logs`: `windfire-calendar.log` has the process stdout/stderr, and `windfire_calendar.log` is the application log, rotated daily. `journalctl -u windfire-calendar` shows start, stop and restart events. The `run-apicalendar*.sh` and `stop-apicalendar.sh` scripts are for local development and test only.
 
-A redeploy overwrites `token.json` on the Pi with your local copy.
+The service runs with `GOOGLE_INTERACTIVE_AUTH=false`: it refreshes expired access tokens in memory only and never writes the token back. A redeploy re-encrypts your local `token.json`. If Google revokes the refresh token, the API returns errors and the log says to regenerate the token locally (`cd app && ./run-calendar.sh`) and redeploy.
 
 ### Undeploy
 `undeploy.sh` asks for confirmation (skip it with `-y`), then runs [windfire-calendar-undeploy.yaml](deployment/raspberry/windfire-calendar-undeploy.yaml), which:
 1. stops and disables the `windfire-calendar` service, and stops any `calendarApiServer.py` process started by hand
-2. removes the systemd unit and the encrypted secret, then reloads systemd
+2. removes the systemd unit and the encrypted credentials (Keycloak secret, Google OAuth client and token), then reloads systemd
 3. removes `/home/pi/windfire-calendar`
 
 The Windfire Root CA, the windfire-security-client `dist` folder and `/home/pi/logs` are left in place because other services use them.

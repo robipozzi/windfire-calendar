@@ -15,7 +15,11 @@ Environment=VERIFY_SSL_CERTS=true
 Environment=ROOT_CA_PATH={{ remote_truststore_dir }}/{{ windfire_ca_root_certificate }}
 Environment=LOG_LEVEL={{ log_level }}
 LoadCredentialEncrypted={{ service_name }}-secrets:/etc/credstore.encrypted/{{ service_name }}-secrets
-# %d is the credentials directory ($CREDENTIALS_DIRECTORY) of this unit
+LoadCredentialEncrypted={{ service_name }}-google-client:/etc/credstore.encrypted/{{ service_name }}-google-client
+LoadCredentialEncrypted={{ service_name }}-google-token:/etc/credstore.encrypted/{{ service_name }}-google-token
+# %d is the credentials directory ($CREDENTIALS_DIRECTORY) of this unit: read-only, so the app never writes the token back
+Environment=GOOGLE_CREDENTIALS_FILE=%d/{{ service_name }}-google-client
+Environment=GOOGLE_TOKEN_FILE=%d/{{ service_name }}-google-token
 ExecStart=/bin/bash -c 'set -a; source "%d/{{ service_name }}-secrets"; set +a; exec {{ venv_path }}/bin/python calendarApiServer.py'
 Restart=on-failure
 RestartSec=5
