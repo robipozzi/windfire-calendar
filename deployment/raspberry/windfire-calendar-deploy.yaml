@@ -7,7 +7,7 @@
     src_dir: "{{ playbook_dir }}"
     mode: u=rwx
     keycloak_server_host: "{{ lookup('env', 'KEYCLOAK_SERVER_HOST') }}"
-    keycloak_server_port: "{{ lookup('env', 'KEYCLOAK_SERVER_PORT') | default('8443', true) }}"
+    keycloak_server_port: "{{ lookup('env', 'KEYCLOAK_SERVER_PORT') | default('8444', true) }}"
     keycloak_service: "{{ lookup('env', 'KEYCLOAK_SERVICE') }}"
     keycloak_client_secret: "{{ lookup('env', 'KEYCLOAK_CLIENT_SECRET') }}"
   vars_files:
