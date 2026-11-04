@@ -265,7 +265,7 @@ The production certificate and key are generated for you if they are missing. Yo
 
 ### What `deploy.sh` does
 1. **Pre-flight checks**: checks for `ansible-playbook`, the SSH key, the Windfire Root CA, the windfire-security-client wheel and the Google files, and stops with a red error if one is missing. If `windfire-calendar.crt` / `.key` are missing from `$HOME/opt/windfire/ssl/certs/raspberry`, it runs [generateServerCert.sh](app/ssl/generateServerCert.sh): choose **3. Production** when asked.
-2. **Secrets**: asks once for the Keycloak host, port and service (defaults are the `KEYCLOAK_PROD_HOST`, `KEYCLOAK_PROD_PORT` and `KEYCLOAK_SERVICE` values in your local `app/.env`) and for the Keycloak client secret, which is not echoed. If `KEYCLOAK_CLIENT_SECRET` is already exported, it is used without asking.
+2. **Secrets**: asks once for the Keycloak host, port and service (defaults are the `KEYCLOAK_PROD_HOST` and `KEYCLOAK_SERVICE` values in your local `app/.env`, and port `8443`) and for the Keycloak client secret, which is not echoed. If `KEYCLOAK_CLIENT_SECRET` is already exported, it is used without asking.
 3. **Playbook**: asks for the `pi` sudo password (`BECOME password`), then runs [windfire-calendar-deploy.yaml](deployment/raspberry/windfire-calendar-deploy.yaml), which uses the shared tasks in [tasks/deploy-app.yaml](deployment/raspberry/tasks/deploy-app.yaml):
    1. stops the `windfire-calendar` service, and any `calendarApiServer.py` process started by hand
    2. removes and recreates `/home/pi/windfire-calendar`, and copies the `app/` folder (without caches, the local venv, certificates, logs, `.env` and the Google files, which are never copied in plaintext)
@@ -277,7 +277,7 @@ The production certificate and key are generated for you if they are missing. Yo
 
 `deploy.sh` prints a green message on success. On any failure it prints a red message and exits with code 1.
 
-[windfire-calendar-full-deploy.yaml](deployment/raspberry/windfire-calendar-full-deploy.yaml) runs the same tasks after updating and upgrading the system packages with apt and installing OpenSSL. `deploy.sh` doesn't run it. To run it, export `KEYCLOAK_SERVER_HOST`, `KEYCLOAK_SERVER_PORT`, `KEYCLOAK_SERVICE` and `KEYCLOAK_CLIENT_SECRET`, then run `ANSIBLE_CONFIG=raspberry/ansible.cfg ansible-playbook raspberry/windfire-calendar-full-deploy.yaml` from the `deployment/` folder; it asks for the `pi` sudo password too. The playbook stops early if one of these variables is empty.
+[windfire-calendar-full-deploy.yaml](deployment/raspberry/windfire-calendar-full-deploy.yaml) runs the same tasks after updating and upgrading the system packages with apt and installing OpenSSL. `deploy.sh` doesn't run it. To run it, export `KEYCLOAK_SERVER_HOST`, `KEYCLOAK_SERVER_PORT`, `KEYCLOAK_SERVICE` and `KEYCLOAK_CLIENT_SECRET`, then run `ANSIBLE_CONFIG=raspberry/ansible.cfg ansible-playbook raspberry/windfire-calendar-full-deploy.yaml` from the `deployment/` folder; it asks for the `pi` sudo password too. `KEYCLOAK_SERVER_PORT` defaults to `8443` if not exported; the playbook stops early if one of the other variables is empty.
 
 Deployment variables (user, folders, certificate names, ports, allowed hosts, log level) are in [deployment/raspberry/conf/config.yaml](deployment/raspberry/conf/config.yaml). `health_check_host` must match the certificate SAN and be listed in `allowed_hosts`.
 

@@ -191,7 +191,7 @@ collectSecrets()
     printBanner "Collect Keycloak configuration and secrets"
     local envFile=../app/.env
     KEYCLOAK_SERVER_HOST=$(inputWithDefault "Keycloak server host" "$(getEnvFileValue $envFile KEYCLOAK_PROD_HOST)")
-    KEYCLOAK_SERVER_PORT=$(inputWithDefault "Keycloak server port" "$(getEnvFileValue $envFile KEYCLOAK_PROD_PORT)")
+    KEYCLOAK_SERVER_PORT=$(inputWithDefault "Keycloak server port" "8443")
     KEYCLOAK_SERVICE=$(inputWithDefault "Keycloak service" "$(getEnvFileValue $envFile KEYCLOAK_SERVICE)")
     AUTH_SERVICE_TEST=$KEYCLOAK_SERVICE
     inputKeycloakClientSecret
