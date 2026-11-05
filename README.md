@@ -1,4 +1,6 @@
 # Windfire Calendar
+[![CI](https://github.com/robipozzi/windfire-calendar/actions/workflows/ci.yml/badge.svg)](https://github.com/robipozzi/windfire-calendar/actions/workflows/ci.yml)
+
 Windfire Calendar is a Python application that wraps the Google Calendar API to query events on the **primary** calendar of a Google account. The main use case is counting how many times an event with a given title (e.g. *"Palestra"*) occurred in a period.
 
 The same business logic is exposed in two ways:
@@ -18,10 +20,12 @@ The repository also includes a test client for the REST API, scripts to generate
 - [Test the REST API](#test-the-rest-api)
 - [TLS certificates](#tls-certificates)
 - [Deploy to Raspberry Pi](#deploy-to-raspberry-pi)
+- [Dependency monitoring and CI](#dependency-monitoring-and-ci)
 
 ## Repository structure
 ```
 windfire-calendar/
+├── .github/                      # dependabot.yml and the CI workflow (workflows/ci.yml)
 ├── common.sh                     # shared shell variables and functions (colors, environment/platform selection, credential prompts)
 ├── app/                          # application code (run all app scripts from this folder)
 │   ├── calendarMgr.py            # terminal application entry point
@@ -38,8 +42,9 @@ windfire-calendar/
 │   ├── utils/dateMgr.py          # date helpers
 │   ├── ssl/                      # server certificate generation script and OpenSSL configs
 │   ├── .env_PLACEHOLDER          # template for app/.env
+│   ├── requirements.txt          # pinned Python dependencies
 │   └── *.sh                      # venv, run, start/stop scripts
-├── test/                         # REST API test suite (test.py + scripts)
+├── test/                         # REST API test suite (test.py + scripts, requirements.txt)
 ├── deployment/                   # deploy.sh / undeploy.sh for Raspberry Pi
 │   └── raspberry/                # Ansible playbooks, conf/config.yaml, tasks/ (shared deploy tasks), templates/ (.env and systemd unit)
 └── img/                          # images used by this README
@@ -67,7 +72,7 @@ All scripts `source ../common.sh`, so they must be run **from their own folder**
 The following scripts are available in [app/](app/) (with equivalent versions in [test/](test/)):
 * **[createPythonVenv.sh](app/createPythonVenv.sh)**: creates the virtual environment if it does not exist, activates it and installs the prerequisites
 * **[activatePythonVenv.sh](app/activatePythonVenv.sh)**: activates an existing virtual environment
-* **[installPrereqs.sh](app/installPrereqs.sh)**: installs the pinned Python modules (Google API client and OAuth libraries, FastAPI, Uvicorn, Pydantic, PyJWT, colorama, python-dateutil, cryptography) and the custom windfire-security-client module. Pass `3` as argument to install the production wheel instead of the editable source
+* **[installPrereqs.sh](app/installPrereqs.sh)**: installs the Python modules pinned in `requirements.txt` (Google API client and OAuth libraries, FastAPI, Uvicorn, Pydantic, PyJWT, colorama, python-dateutil, cryptography) and the custom windfire-security-client module. Pass `3` as argument to install the production wheel instead of the editable source
 * **[deactivatePythonVenv.sh](app/deactivatePythonVenv.sh)**: prints the command to deactivate the environment
 
 The run scripts described below call `createPythonVenv.sh` automatically, so usually you don't need to run these scripts yourself. Note that the app version reinstalls prerequisites on every run, while the test version installs them only when it creates the virtual environment. To leave a virtual environment, type **deactivate** in the terminal.
@@ -300,3 +305,23 @@ The service runs with `GOOGLE_INTERACTIVE_AUTH=false`: it refreshes expired acce
 The Windfire Root CA, the windfire-security-client `dist` folder and `/home/pi/logs` are left in place because other services use them.
 
 > **Note:** the Keycloak host/port selection requires the windfire-security-client version that honours `KEYCLOAK_SERVER_HOST` / `KEYCLOAK_SERVER_PORT`. Production installs the client wheel from `$HOME/dist`, so rebuild it with `./createModule.sh` in `windfire-security-client` and redeploy after updating the client; older wheels ignore these variables and always use their built-in host for the environment.
+
+## Dependency monitoring and CI
+### CI
+The badge at the top of this page shows the latest [CI workflow](.github/workflows/ci.yml) run on `main`; click it to see all runs. The workflow runs on every pull request and on every push to `main`.
+
+For `app/` and `test/`, on Python 3.11 (the minor version the Raspberry Pi runs), it:
+1. installs `requirements.txt`
+2. checks that the sources compile (`python -m compileall`)
+3. audits the dependencies for known vulnerabilities (`pip-audit -r requirements.txt`)
+
+On pull requests, the dependency review check also fails if the pull request adds a dependency with a known vulnerability of high or critical severity.
+
+CI does not run [test/test.py](test/test.py), because it needs a running server, and it does not install windfire-security-client, because that module is not on PyPI. Its dependencies are therefore not audited.
+
+### Dependabot
+[Dependabot](.github/dependabot.yml) checks `app/requirements.txt`, `test/requirements.txt` and the GitHub Actions used by the workflow every week. Minor and patch updates are grouped into one pull request for each of these three, major updates get their own pull requests, and each of the three has at most 5 version update pull requests open at a time.
+
+To read the alerts, go to the **Security** tab of the repository and open **Dependabot** (https://github.com/robipozzi/windfire-calendar/security/dependabot; you need access to the repository's security alerts). Each alert shows the affected package and file, the severity, the advisory and the first patched version, and links to the Dependabot pull request if there is one.
+
+`app/requirements.txt` and `test/requirements.txt` list the same pins and are updated separately, so update both when you change a version.
