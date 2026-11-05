@@ -3,15 +3,14 @@
 # The play runs with become (root): tasks that write under the pi home folder either set owner/group
 # or run as the connecting user with "become: false", so parent folders are never created as root.
 
-# Task 0: Check that deploy.sh exported the Keycloak configuration and secret
-- name: Check Keycloak configuration and secret are set
+# Task 0: Check that deploy.sh exported the Windfire Security configuration
+- name: Check Windfire Security configuration is set
   ansible.builtin.assert:
     that:
-      - keycloak_server_host | length > 0
-      - keycloak_server_port | length > 0
-      - keycloak_service | length > 0
-      - keycloak_client_secret | length > 0
-    fail_msg: "KEYCLOAK_SERVER_HOST, KEYCLOAK_SERVER_PORT, KEYCLOAK_SERVICE and KEYCLOAK_CLIENT_SECRET must be exported (run deployment/deploy.sh)"
+      - windfire_security_host | length > 0
+      - windfire_security_port | length > 0
+      - windfire_security_service | length > 0
+    fail_msg: "WINDFIRE_SECURITY_HOST, WINDFIRE_SECURITY_PORT and WINDFIRE_SECURITY_SERVICE must be exported (run deployment/deploy.sh)"
     quiet: true
   no_log: true
 
@@ -216,13 +215,7 @@
   debug:
     var: pip_list.stdout_lines
 
-# Task 8: Encrypt secrets (Keycloak client secret, Google OAuth files) at rest with systemd-creds (plaintext never written to disk)
-- name: Build plaintext secrets blob for systemd-creds
-  set_fact:
-    windfire_secrets_blob: |
-      KEYCLOAK_CLIENT_SECRET={{ keycloak_client_secret | quote }}
-  no_log: true
-
+# Task 8: Encrypt the Google OAuth files at rest with systemd-creds (plaintext never written to disk)
 - name: Ensure /etc/credstore.encrypted directory exists
   file:
     path: /etc/credstore.encrypted
@@ -231,17 +224,11 @@
     group: root
     mode: "0700"
 
-- name: Remove previous encrypted secrets credential, if any
+# Older deployments stored a Keycloak client secret here that the application never used
+- name: Remove obsolete encrypted secrets credential, if any
   file:
     path: "/etc/credstore.encrypted/{{ service_name }}-secrets"
     state: absent
-
-- name: Encrypt Windfire Calendar secrets with systemd-creds
-  command:
-    cmd: "systemd-creds encrypt --name={{ service_name }}-secrets --with-key=host - /etc/credstore.encrypted/{{ service_name }}-secrets"
-    stdin: "{{ windfire_secrets_blob }}"
-  no_log: true
-  notify: reload systemd
 
 # Google OAuth client (credentials.json) and token (token.json): read on the control node and encrypted on the Pi,
 # systemd decrypts them into the read-only credentials directory of the unit (see windfire-calendar.service.j2)

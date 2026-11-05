@@ -6,7 +6,7 @@ source ../common.sh
 # ===== DEFAULT VALUES =====
 LOG_LEVEL=
 RUN_ENVIRONMENT=
-KEYCLOAK_ENV_OPTION=
+SECURITY_ENV_OPTION=
 
 # ===== MAIN FUNCTION =====
 main()
@@ -17,12 +17,11 @@ main()
     echo 
     echo This script will run the following steps:
     echo    1. Select the application environment, if not provided as argument
-    echo    2. Select the Keycloak environment used for authentication, if not provided as argument
-    echo    3. Input the Keycloak client secret, if KEYCLOAK_CLIENT_SECRET is not set
-    echo    4. Create a Python Virtual Environment, if does not exist
-    echo    5. Activate the Python Virtual Environment
-    echo    6. Install Python prerequisites, if not already installed
-    echo    7. Run the Windfire Calendar FastAPI server in background
+    echo    2. Select the Windfire Security environment used for authentication, if not provided as argument
+    echo    3. Create a Python Virtual Environment, if does not exist
+    echo    4. Activate the Python Virtual Environment
+    echo    5. Install Python prerequisites, if not already installed
+    echo    6. Run the Windfire Calendar FastAPI server in background
     echo 
 
     # Invoke parseArguments() function to parse and validate arguments
@@ -37,10 +36,9 @@ run()
 {
     # Prompt for everything up front: once in background, output goes to the log file and no prompt is possible
     selectEnvironment "$RUN_ENVIRONMENT"
-    selectKeycloakEnvironment "$KEYCLOAK_ENV_OPTION"
-    inputKeycloakClientSecret
+    selectSecurityEnvironment "$SECURITY_ENV_OPTION"
 
-    local runArgs=("$ENVIRONMENT_SELECTION" --KEYCLOAK_ENV "$KEYCLOAK_ENVIRONMENT")
+    local runArgs=("$ENVIRONMENT_SELECTION" --SECURITY_ENV "$WINDFIRE_SECURITY_ENVIRONMENT")
     if [[ -n "$LOG_LEVEL" ]]; then
         runArgs+=(--LOG_LEVEL "$LOG_LEVEL")
     fi
@@ -65,20 +63,20 @@ parseArguments() {
                 LOG_LEVEL="$2"
                 shift 2
                 ;;
-            --KEYCLOAK_ENV)
+            --SECURITY_ENV)
                 case $2 in
                     1|2|3|dev|test|prod)
-                        KEYCLOAK_ENV_OPTION="$2"
+                        SECURITY_ENV_OPTION="$2"
                         shift 2
                         ;;
                     *)
-                        echo -e "${RED}Error: --KEYCLOAK_ENV requires one of dev|test|prod (or 1|2|3)${RESET}"
+                        echo -e "${RED}Error: --SECURITY_ENV requires one of dev|test|prod (or 1|2|3)${RESET}"
                         exit 1
                         ;;
                 esac
                 ;;
             -h|--help)
-                echo "Usage: ./run-apicalendar-background.sh [1|2|3] [--KEYCLOAK_ENV dev|test|prod] [--LOG_LEVEL LEVEL]"
+                echo "Usage: ./run-apicalendar-background.sh [1|2|3] [--SECURITY_ENV dev|test|prod] [--LOG_LEVEL LEVEL]"
                 echo "Same arguments as ./run-apicalendar.sh (see ./run-apicalendar.sh --help); output goes to logs/windfire-calendar.log"
                 exit 0
                 ;;

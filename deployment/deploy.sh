@@ -76,7 +76,7 @@ deployToRaspberry()
     checkSSLCertificates
     checkSecurityClientWheel
     checkAppConfig
-    collectSecrets
+    collectSecurityConfig
     runPlaybook raspberry/windfire-calendar-deploy.yaml
 }
 
@@ -186,16 +186,14 @@ inputWithDefault()
     echo "$value"
 }
 
-collectSecrets()
+collectSecurityConfig()
 {
-    printBanner "Collect Keycloak configuration and secrets"
+    printBanner "Collect Windfire Security configuration"
     local envFile=../app/.env
-    KEYCLOAK_SERVER_HOST=$(inputWithDefault "Windfire Security server host" "$(getEnvFileValue $envFile KEYCLOAK_PROD_HOST)")
-    KEYCLOAK_SERVER_PORT=$(inputWithDefault "Windfire Security server port" "8444")
-    KEYCLOAK_SERVICE=$(inputWithDefault "Keycloak service" "$(getEnvFileValue $envFile KEYCLOAK_SERVICE)")
-    AUTH_SERVICE_TEST=$KEYCLOAK_SERVICE
-    inputKeycloakClientSecret
-    export KEYCLOAK_SERVER_HOST KEYCLOAK_SERVER_PORT KEYCLOAK_SERVICE KEYCLOAK_CLIENT_SECRET
+    WINDFIRE_SECURITY_HOST=$(inputWithDefault "Windfire Security server host" "$(getEnvFileValue $envFile WINDFIRE_SECURITY_PROD_HOST)")
+    WINDFIRE_SECURITY_PORT=$(inputWithDefault "Windfire Security server port" "8444")
+    WINDFIRE_SECURITY_SERVICE=$(inputWithDefault "Windfire Security service" "$(getEnvFileValue $envFile WINDFIRE_SECURITY_SERVICE)")
+    export WINDFIRE_SECURITY_HOST WINDFIRE_SECURITY_PORT WINDFIRE_SECURITY_SERVICE
     echo
 }
 
@@ -243,12 +241,9 @@ printHelp() {
     echo -e "3. Check the production server certificate and key (generated if missing)"
     echo -e "4. Check that the windfire-security-client wheel has been built"
     echo -e "5. Check app/credentials.json and app/token.json"
-    echo -e "6. Ask for the Keycloak host, port, service and client secret"
+    echo -e "6. Ask for the Windfire Security host, port and service"
     echo -e "7. Run the Ansible playbook (asks for the sudo password of user pi on the Raspberry):"
     echo -e "   deploy, start the systemd service and health-check it"
-    echo
-    echo -e "${BOLD}ENVIRONMENT VARIABLES:${RESET}"
-    echo -e "   KEYCLOAK_CLIENT_SECRET  Keycloak OAuth client secret (prompted if not set)"
     echo
     echo -e "${BOLD}EXIT CODES:${RESET}"
     echo -e "   0   Success"

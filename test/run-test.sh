@@ -26,7 +26,7 @@ main()
 run()
 {
     selectEnvironment "$RUN_ENVIRONMENT"
-    selectSecurityEnvironment "$RUN_SECURITY_ENVIRONMENT"
+    selectTestSecurityEnvironment "$RUN_SECURITY_ENVIRONMENT"
     getCredentials
 
     # Show configuration
@@ -57,7 +57,7 @@ run()
 
 # ===== WINDFIRE SECURITY ENVIRONMENT SELECTION FUNCTION =====
 # Empty answer selects Production; host/port are resolved by test.py from ../app/.env
-selectSecurityEnvironment()
+selectTestSecurityEnvironment()
 {
     local option=$1
     while true; do
@@ -172,7 +172,7 @@ print_help() {
     echo
     echo -e "    -s, --security-env 1|2|3   Windfire Security environment used to authenticate:"
     echo -e "                               1=Development, 2=Test, 3=Production"
-    echo -e "                               1/2 -> KEYCLOAK_DEV/TEST_HOST:PORT in ../app/.env (localhost:8444)"
+    echo -e "                               1/2 -> WINDFIRE_SECURITY_DEV/TEST_HOST:PORT in ../app/.env (localhost:8444)"
     echo -e "                               3   -> https://raspberry01:8444"
     echo -e "                               Prompted if omitted, empty answer selects Production"
     echo

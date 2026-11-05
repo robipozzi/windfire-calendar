@@ -121,7 +121,8 @@ deleteServerCsr()
 verifyServerCertificate()
 {
     echo "Verifying Server Certificate against Windfire Root CA ..."
-    openssl verify -CAfile "$ROOT_CA_CERTIFICATE_PATH" "$CERTS_DIR/$WINDFIRE_SERVER_CERTIFICATE" \
+    # -x509_strict matches the checks of Python 3.13+ TLS clients, which reject a certificate without an Authority Key Identifier
+    openssl verify -x509_strict -CAfile "$ROOT_CA_CERTIFICATE_PATH" "$CERTS_DIR/$WINDFIRE_SERVER_CERTIFICATE" \
         || { echo -e "${RED}Error: server certificate is not signed by Windfire Root CA ${BLU}$ROOT_CA_CERTIFICATE_PATH${RESET}" >&2; exit 1; }
     openssl x509 -in "$CERTS_DIR/$WINDFIRE_SERVER_CERTIFICATE" -noout -issuer -ext subjectAltName -enddate
     echo -e "Server Certificate ${BLU}$CERTS_DIR/$WINDFIRE_SERVER_CERTIFICATE${RESET} verified"

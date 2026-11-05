@@ -38,10 +38,10 @@ DEFAULT_AUTH_SERVICE_TEST=windfire-calendar-srv
 VERIFY_SSL_CERTS=true
 AUTH_SERVICE_TEST=$DEFAULT_AUTH_SERVICE_TEST
 
-# ===== KEYCLOAK CONFIGURATION VARIABLES =====
-KEYCLOAK_ENVIRONMENT=
-KEYCLOAK_SERVER_HOST=
-KEYCLOAK_SERVER_PORT=
+# ===== WINDFIRE SECURITY CONFIGURATION VARIABLES =====
+WINDFIRE_SECURITY_ENVIRONMENT=
+WINDFIRE_SECURITY_HOST=
+WINDFIRE_SECURITY_PORT=
 
 # ===== ROOT CA VARIABLES =====
 WINDFIRE_ROOT_CA_KEY="WindfireRootCA.key"
@@ -98,13 +98,13 @@ getEnvFileValue()
     echo "$value"
 }
 
-# Function to select Keycloak environment used for authentication and resolve its host/port from ./.env
-selectKeycloakEnvironment()
+# Function to select Windfire Security environment used for authentication and resolve its host/port from ./.env
+selectSecurityEnvironment()
 {
     local option=$1
     while true; do
         if [[ -z "$option" ]]; then
-            echo -e "${BLU}Select Keycloak environment for authentication : ${RESET}"
+            echo -e "${BLU}Select Windfire Security environment for authentication : ${RESET}"
             echo -e "${BLU}1. Development${RESET}"
             echo -e "${BLU}2. Test${RESET}"
             echo -e "${BLU}3. Production [default]${RESET}"
@@ -114,30 +114,30 @@ selectKeycloakEnvironment()
             fi
         fi
         case $option in
-            1|dev)   KEYCLOAK_ENVIRONMENT=dev
+            1|dev)   WINDFIRE_SECURITY_ENVIRONMENT=dev
                      break
                      ;;
-            2|test)  KEYCLOAK_ENVIRONMENT=test
+            2|test)  WINDFIRE_SECURITY_ENVIRONMENT=test
                      break
                      ;;
-            3|prod)  KEYCLOAK_ENVIRONMENT=prod
+            3|prod)  WINDFIRE_SECURITY_ENVIRONMENT=prod
                      break
                      ;;
-            *)       echo -e "${RED}No valid Keycloak environment option selected: $option${RESET}"
+            *)       echo -e "${RED}No valid Windfire Security environment option selected: $option${RESET}"
                      option=
                      ;;
         esac
     done
 
     local envPrefix
-    envPrefix=$(echo "$KEYCLOAK_ENVIRONMENT" | tr '[:lower:]' '[:upper:]')
-    KEYCLOAK_SERVER_HOST=$(getEnvFileValue ./.env "KEYCLOAK_${envPrefix}_HOST")
-    KEYCLOAK_SERVER_PORT=$(getEnvFileValue ./.env "KEYCLOAK_${envPrefix}_PORT")
-    if [[ -z "$KEYCLOAK_SERVER_HOST" || -z "$KEYCLOAK_SERVER_PORT" ]]; then
-        echo -e "${RED}Error: KEYCLOAK_${envPrefix}_HOST and KEYCLOAK_${envPrefix}_PORT must be set in ./.env${RESET}"
+    envPrefix=$(echo "$WINDFIRE_SECURITY_ENVIRONMENT" | tr '[:lower:]' '[:upper:]')
+    WINDFIRE_SECURITY_HOST=$(getEnvFileValue ./.env "WINDFIRE_SECURITY_${envPrefix}_HOST")
+    WINDFIRE_SECURITY_PORT=$(getEnvFileValue ./.env "WINDFIRE_SECURITY_${envPrefix}_PORT")
+    if [[ -z "$WINDFIRE_SECURITY_HOST" || -z "$WINDFIRE_SECURITY_PORT" ]]; then
+        echo -e "${RED}Error: WINDFIRE_SECURITY_${envPrefix}_HOST and WINDFIRE_SECURITY_${envPrefix}_PORT must be set in ./.env${RESET}"
         exit 1
     fi
-    echo -e "${CYAN}Keycloak environment : $KEYCLOAK_ENVIRONMENT ($KEYCLOAK_SERVER_HOST:$KEYCLOAK_SERVER_PORT)${RESET}"
+    echo -e "${CYAN}Windfire Security environment : $WINDFIRE_SECURITY_ENVIRONMENT ($WINDFIRE_SECURITY_HOST:$WINDFIRE_SECURITY_PORT)${RESET}"
 }
 
 # Function to securely input credentials
@@ -167,24 +167,6 @@ getCredentials() {
         export USERNAME PASSWORD AUTH_SERVICE_TEST
         break
     done
-}
-
-# Function to securely input KEYCLOAK_CLIENT_SECRET
-inputKeycloakClientSecret() {
-    if [ -n "$KEYCLOAK_CLIENT_SECRET" ]; then
-        echo "KEYCLOAK_CLIENT_SECRET set"
-    else
-        while true; do
-            read -s -p "${BLU}Enter Keycloak Client Secret for $AUTH_SERVICE_TEST service: ${END}" KEYCLOAK_CLIENT_SECRET
-            echo
-            if [[ -z "$KEYCLOAK_CLIENT_SECRET" ]]; then
-                echo -e "${RED}Error: KEYCLOAK_CLIENT_SECRET cannot be empty. Please try again.${RESET}"
-            else
-                export KEYCLOAK_CLIENT_SECRET
-                break
-            fi
-        done
-    fi
 }
 
 # Functions to select and set deployment platform

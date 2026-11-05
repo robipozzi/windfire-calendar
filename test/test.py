@@ -22,7 +22,7 @@ CALENDAR_ENVIRONMENTS = {
     "prod": "raspberry02",
 }
 
-# Windfire Security server per environment: defaults, overridden by KEYCLOAK_<ENV>_HOST/PORT in app/.env
+# Windfire Security server per environment: defaults, overridden by WINDFIRE_SECURITY_<ENV>_HOST/PORT in app/.env
 SECURITY_ENVIRONMENTS = {
     "dev": ("localhost", "8444"),
     "test": ("localhost", "8444"),
@@ -131,11 +131,11 @@ def configure(args):
     securityHost, securityPort = SECURITY_ENVIRONMENTS[securityEnvironment]
     envFile = read_env_file(APP_ENV_FILE)
     prefix = securityEnvironment.upper()
-    securityHost = envFile.get(f"KEYCLOAK_{prefix}_HOST") or securityHost
-    securityPort = envFile.get(f"KEYCLOAK_{prefix}_PORT") or securityPort
+    securityHost = envFile.get(f"WINDFIRE_SECURITY_{prefix}_HOST") or securityHost
+    securityPort = envFile.get(f"WINDFIRE_SECURITY_{prefix}_PORT") or securityPort
     # authClient reads these in __init__, so they must be set before importing it
-    os.environ["KEYCLOAK_SERVER_HOST"] = securityHost
-    os.environ["KEYCLOAK_SERVER_PORT"] = securityPort
+    os.environ["WINDFIRE_SECURITY_HOST"] = securityHost
+    os.environ["WINDFIRE_SECURITY_PORT"] = securityPort
     from client.authClient import authClient as client
     authClient = client
 

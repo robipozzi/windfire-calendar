@@ -6,7 +6,7 @@ source ../common.sh
 # ===== DEFAULT VALUES =====
 LOG_LEVEL=
 RUN_ENVIRONMENT=
-KEYCLOAK_ENV_OPTION=
+SECURITY_ENV_OPTION=
 
 # ===== MAIN FUNCTION =====
 main() {
@@ -19,23 +19,23 @@ main() {
     # Invoke parseArguments() function to parse and validate arguments
     parseArguments "$@"
 
-    # Select application environment and Keycloak environment (prompts only for values not given as arguments)
+    # Select application environment and Windfire Security environment (prompts only for values not given as arguments)
     selectEnvironment "$RUN_ENVIRONMENT"
-    selectKeycloakEnvironment "$KEYCLOAK_ENV_OPTION"
+    selectSecurityEnvironment "$SECURITY_ENV_OPTION"
 
     # createPythonVenv.sh re-sources ../common.sh, which resets these variables: save them and restore after
     local selectedEnvironment=$ENVIRONMENT
-    local selectedKeycloakEnvironment=$KEYCLOAK_ENVIRONMENT
-    local selectedKeycloakHost=$KEYCLOAK_SERVER_HOST
-    local selectedKeycloakPort=$KEYCLOAK_SERVER_PORT
+    local selectedSecurityEnvironment=$WINDFIRE_SECURITY_ENVIRONMENT
+    local selectedSecurityHost=$WINDFIRE_SECURITY_HOST
+    local selectedSecurityPort=$WINDFIRE_SECURITY_PORT
 
     # Source createPythonVenv.sh script to create and activate Python Virtual Environment
     source ./createPythonVenv.sh "$ENVIRONMENT_SELECTION"
 
     ENVIRONMENT=$selectedEnvironment
-    KEYCLOAK_ENVIRONMENT=$selectedKeycloakEnvironment
-    KEYCLOAK_SERVER_HOST=$selectedKeycloakHost
-    KEYCLOAK_SERVER_PORT=$selectedKeycloakPort
+    WINDFIRE_SECURITY_ENVIRONMENT=$selectedSecurityEnvironment
+    WINDFIRE_SECURITY_HOST=$selectedSecurityHost
+    WINDFIRE_SECURITY_PORT=$selectedSecurityPort
 
     # Invoke run() function to start the FastAPI server
     run
@@ -45,20 +45,18 @@ main() {
 run()
 {
     echo -e "${YELLOW}Running calendar service API in environment : $ENVIRONMENT${RESET}"
-    echo -e "${YELLOW}Authenticating against Keycloak environment : $KEYCLOAK_ENVIRONMENT ($KEYCLOAK_SERVER_HOST:$KEYCLOAK_SERVER_PORT)${RESET}"
-    inputKeycloakClientSecret
+    echo -e "${YELLOW}Authenticating against Windfire Security environment : $WINDFIRE_SECURITY_ENVIRONMENT ($WINDFIRE_SECURITY_HOST:$WINDFIRE_SECURITY_PORT)${RESET}"
 
     # Run Calendar Service
-    echo -e "${YELLOW}Starting server with: LOG_LEVEL=${LOG_LEVEL} ENVIRONMENT=$ENVIRONMENT KEYCLOAK_ENVIRONMENT=$KEYCLOAK_ENVIRONMENT KEYCLOAK_SERVER_HOST=$KEYCLOAK_SERVER_HOST KEYCLOAK_SERVER_PORT=$KEYCLOAK_SERVER_PORT KEYCLOAK_CLIENT_SECRET={***} python3 calendarApiServer.py${RESET}"
+    echo -e "${YELLOW}Starting server with: LOG_LEVEL=${LOG_LEVEL} ENVIRONMENT=$ENVIRONMENT WINDFIRE_SECURITY_ENVIRONMENT=$WINDFIRE_SECURITY_ENVIRONMENT WINDFIRE_SECURITY_HOST=$WINDFIRE_SECURITY_HOST WINDFIRE_SECURITY_PORT=$WINDFIRE_SECURITY_PORT python3 calendarApiServer.py${RESET}"
 
     LOG_LEVEL=${LOG_LEVEL} \
     VERIFY_SSL_CERTS=$VERIFY_SSL_CERTS \
     ENVIRONMENT=$ENVIRONMENT \
-    KEYCLOAK_ENVIRONMENT=$KEYCLOAK_ENVIRONMENT \
-    KEYCLOAK_SERVER_HOST=$KEYCLOAK_SERVER_HOST \
-    KEYCLOAK_SERVER_PORT=$KEYCLOAK_SERVER_PORT \
+    WINDFIRE_SECURITY_ENVIRONMENT=$WINDFIRE_SECURITY_ENVIRONMENT \
+    WINDFIRE_SECURITY_HOST=$WINDFIRE_SECURITY_HOST \
+    WINDFIRE_SECURITY_PORT=$WINDFIRE_SECURITY_PORT \
     ROOT_CA_PATH=$WINDFIRE_DEFAULT_TRUSTSTORE_DIR/$WINDFIRE_ROOT_CA_CERTIFICATE \
-    KEYCLOAK_CLIENT_SECRET=$KEYCLOAK_CLIENT_SECRET \
     python3 calendarApiServer.py
 }
 
@@ -81,15 +79,15 @@ parseArguments() {
                 LOG_LEVEL="$2"
                 shift 2
                 ;;
-            --KEYCLOAK_ENV)
+            --SECURITY_ENV)
                 case $2 in
                     1|2|3|dev|test|prod)
-                        echo "Keycloak environment option selected: $2"
-                        KEYCLOAK_ENV_OPTION="$2"
+                        echo "Windfire Security environment option selected: $2"
+                        SECURITY_ENV_OPTION="$2"
                         shift 2
                         ;;
                     *)
-                        echo -e "${RED}Error: --KEYCLOAK_ENV requires one of dev|test|prod (or 1|2|3)${RESET}"
+                        echo -e "${RED}Error: --SECURITY_ENV requires one of dev|test|prod (or 1|2|3)${RESET}"
                         exit 1
                         ;;
                 esac
@@ -129,7 +127,7 @@ printHelp() {
     echo -e "  4. Run the Windfire Calendar FastAPI server"
     echo
     echo -e "${BOLD}USAGE:${RESET}"
-    echo -e "    ./run-apicalendar.sh [1|2|3] [--KEYCLOAK_ENV ENV] [--LOG_LEVEL LEVEL]"
+    echo -e "    ./run-apicalendar.sh [1|2|3] [--SECURITY_ENV ENV] [--LOG_LEVEL LEVEL]"
     echo
     echo -e "${BOLD}ARGUMENTS:${RESET}"
     echo -e "1|2|3                   Application environment: 1=Development, 2=Test, 3=Production (prompted if omitted)"
@@ -137,8 +135,8 @@ printHelp() {
     echo -e "${BOLD}OPTIONS:${RESET}"
     echo -e "-v, --version           Show version information"
     echo
-    echo -e "--KEYCLOAK_ENV ENV      Keycloak environment used for authentication: dev|test|prod (or 1|2|3)"
-    echo -e "                        Prompted if omitted (Enter = prod). Host/port are read from KEYCLOAK_<ENV>_HOST/PORT in .env"
+    echo -e "--SECURITY_ENV ENV      Windfire Security environment used for authentication: dev|test|prod (or 1|2|3)"
+    echo -e "                        Prompted if omitted (Enter = prod). Host/port are read from WINDFIRE_SECURITY_<ENV>_HOST/PORT in .env"
     echo
     echo -e "--LOG_LEVEL LEVEL       Set the logging level (e.g., DEBUG, INFO, WARNING, ERROR, CRITICAL)"
     echo
@@ -146,13 +144,13 @@ printHelp() {
     echo
     echo -e "${BOLD}EXAMPLES:${RESET}"
     echo -e "./run-apicalendar.sh"
-    echo -e "    Prompt for application environment and Keycloak environment"
+    echo -e "    Prompt for application environment and Windfire Security environment"
     echo
-    echo -e "./run-apicalendar.sh 3 --KEYCLOAK_ENV prod"
-    echo -e "    Run in Production, authenticating against the Production Keycloak"
+    echo -e "./run-apicalendar.sh 3 --SECURITY_ENV prod"
+    echo -e "    Run in Production, authenticating against the Production Windfire Security server"
     echo
-    echo -e "./run-apicalendar.sh 1 --KEYCLOAK_ENV dev --LOG_LEVEL DEBUG"
-    echo -e "    Run in Development against the Development Keycloak, with DEBUG logging"
+    echo -e "./run-apicalendar.sh 1 --SECURITY_ENV dev --LOG_LEVEL DEBUG"
+    echo -e "    Run in Development against the Development Windfire Security server, with DEBUG logging"
     echo
     echo -e "./run-apicalendar.sh --help"
     echo -e "    Display this help message"
@@ -163,13 +161,10 @@ printHelp() {
     echo -e "3. Install Python prerequisites (if not already installed)"
     echo -e "4. Run the Windfire Calendar FastAPI server"
     echo
-    echo -e "${BOLD}ENVIRONMENT VARIABLES REQUIRED:${RESET}"
-    echo -e "   KEYCLOAK_CLIENT_SECRET  Keycloak OAuth client secret (prompted if not set)"
-    echo
     echo -e "${BOLD}.env KEYS USED:${RESET}"
-    echo -e "   KEYCLOAK_DEV_HOST / KEYCLOAK_DEV_PORT     Development Keycloak endpoint"
-    echo -e "   KEYCLOAK_TEST_HOST / KEYCLOAK_TEST_PORT   Test Keycloak endpoint"
-    echo -e "   KEYCLOAK_PROD_HOST / KEYCLOAK_PROD_PORT   Production Keycloak endpoint"
+    echo -e "   WINDFIRE_SECURITY_DEV_HOST / WINDFIRE_SECURITY_DEV_PORT     Development Windfire Security server"
+    echo -e "   WINDFIRE_SECURITY_TEST_HOST / WINDFIRE_SECURITY_TEST_PORT   Test Windfire Security server"
+    echo -e "   WINDFIRE_SECURITY_PROD_HOST / WINDFIRE_SECURITY_PROD_PORT   Production Windfire Security server"
     echo 
     echo -e "${BOLD}EXIT CODES:${RESET}"
     echo -e "   0   Success"

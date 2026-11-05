@@ -146,9 +146,9 @@ def main():
     logger.info(f"  ENFORCE_HTTPS: {settings.get('ENFORCE_HTTPS')}")
     logger.info(f"  ALLOWED_HOSTS: {settings.get('ALLOWED_HOSTS')}")
     logger.info(f"  ENVIRONMENT: {os.getenv('ENVIRONMENT')}")
-    logger.info(f"  KEYCLOAK_ENVIRONMENT: {os.getenv('KEYCLOAK_ENVIRONMENT')}")
-    logger.info(f"  KEYCLOAK_SERVER_HOST: {os.getenv('KEYCLOAK_SERVER_HOST')}")
-    logger.info(f"  KEYCLOAK_SERVER_PORT: {os.getenv('KEYCLOAK_SERVER_PORT')}")
+    logger.info(f"  WINDFIRE_SECURITY_ENVIRONMENT: {os.getenv('WINDFIRE_SECURITY_ENVIRONMENT')}")
+    logger.info(f"  WINDFIRE_SECURITY_HOST: {os.getenv('WINDFIRE_SECURITY_HOST')}")
+    logger.info(f"  WINDFIRE_SECURITY_PORT: {os.getenv('WINDFIRE_SECURITY_PORT')}")
     
     logger.info(f"Starting {SERVICE_NAME} server...")
     host=settings.get('API_HOST')

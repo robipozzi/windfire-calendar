@@ -56,7 +56,7 @@ windfire-calendar/
 * The **windfire-security-client** Python package (module `client.authClient`), used by the REST API and by the test client to authenticate and verify tokens. The install scripts expect it:
   * in **development/test**: as source code in `$HOME/dev/windfire-security-client` (installed in editable mode, `pip install -e`)
   * in **production** (environment option `3`): as a wheel in `$HOME/dist/client-1.0.0-py3-none-any.whl`
-* For the REST API: a reachable **Keycloak** / Windfire Security service and its client secret
+* For the REST API: a reachable Windfire Security service
 * For HTTPS: **OpenSSL** and the **Windfire Root CA** key and certificate (see [TLS certificates](#tls-certificates))
 * For deployment: **Ansible**, **rsync** and SSH access to the Raspberry Pi (see [What you need before deploying](#what-you-need-before-deploying))
 
@@ -90,10 +90,10 @@ Configuration is read from **app/.env** (loaded with python-dotenv). Copy [app/.
 | `ENFORCE_HTTPS` | `true` to serve over HTTPS and redirect HTTP requests to HTTPS; `false` for plain HTTP (development only) |
 | `ALLOWED_HOSTS` | Comma-separated list of trusted hostnames accepted in the `Host` header (check is skipped when set to `*`) |
 | `CORS_ORIGINS` | Optional comma-separated list of browser origins allowed to call the API, with scheme and port (e.g. `https://app.example.com:3000`). Empty or unset disables cross-origin requests |
-| `KEYCLOAK_DEV_HOST` / `KEYCLOAK_DEV_PORT` | Development Keycloak / Windfire Security auth server (e.g. `localhost` / `8444`) |
-| `KEYCLOAK_TEST_HOST` / `KEYCLOAK_TEST_PORT` | Test Keycloak / Windfire Security auth server (e.g. `localhost` / `8444`) |
-| `KEYCLOAK_PROD_HOST` / `KEYCLOAK_PROD_PORT` | Production Keycloak / Windfire Security auth server (e.g. `raspberry01` / `8444`) |
-| `KEYCLOAK_SERVICE` | Service (client) name used when verifying Bearer tokens |
+| `WINDFIRE_SECURITY_DEV_HOST` / `WINDFIRE_SECURITY_DEV_PORT` | Development Windfire Security auth server (e.g. `localhost` / `8444`) |
+| `WINDFIRE_SECURITY_TEST_HOST` / `WINDFIRE_SECURITY_TEST_PORT` | Test Windfire Security auth server (e.g. `localhost` / `8444`) |
+| `WINDFIRE_SECURITY_PROD_HOST` / `WINDFIRE_SECURITY_PROD_PORT` | Production Windfire Security auth server (e.g. `raspberry01` / `8444`) |
+| `WINDFIRE_SECURITY_SERVICE` | Service (client) name used when verifying Bearer tokens |
 | `DEFAULT_LOG_LEVEL` | `DEBUG`, `INFO`, `WARNING`, `ERROR` or `CRITICAL`; overridden by the `LOG_LEVEL` environment variable |
 | `DEFAULT_LOG_FILE` | Log file path, e.g. `logs/windfire_calendar.log`. **Required**: there is no default |
 | `DEFAULT_LOG_ROTATION_WHEN` | When the log file is rotated (default `midnight`) |
@@ -105,9 +105,9 @@ Configuration is read from **app/.env** (loaded with python-dotenv). Copy [app/.
 
 On the Pi, `GOOGLE_CREDENTIALS_FILE` and `GOOGLE_TOKEN_FILE` are not in `.env`: the systemd unit sets them to the files it decrypts from `/etc/credstore.encrypted` (see [Deploy to Raspberry Pi](#deploy-to-raspberry-pi)).
 
-The start scripts read only the host and port of the selected Keycloak environment and stop if either is empty. Relative paths for the Google OAuth files are resolved against the `app/` directory, while the log file path is relative to the working directory (`app/` when you use the scripts). Logs are written **only to the log file**, not to the console.
+The start scripts read only the host and port of the selected Windfire Security environment and stop if either is empty. Relative paths for the Google OAuth files are resolved against the `app/` directory, while the log file path is relative to the working directory (`app/` when you use the scripts). Logs are written **only to the log file**, not to the console.
 
-The start scripts also pass these environment variables to the API server: `ENVIRONMENT` (`dev`, `test` or `prod`), `KEYCLOAK_ENVIRONMENT`, `KEYCLOAK_SERVER_HOST` / `KEYCLOAK_SERVER_PORT` (resolved from the `KEYCLOAK_<ENV>_HOST/PORT` keys above), `LOG_LEVEL`, `KEYCLOAK_CLIENT_SECRET`, `VERIFY_SSL_CERTS` and `ROOT_CA_PATH` (Windfire Root CA certificate, default `$HOME/opt/windfire/ssl/truststore/WindfireRootCA.crt`).
+The start scripts also pass these environment variables to the API server: `ENVIRONMENT` (`dev`, `test` or `prod`), `WINDFIRE_SECURITY_ENVIRONMENT`, `WINDFIRE_SECURITY_HOST` / `WINDFIRE_SECURITY_PORT` (resolved from the `WINDFIRE_SECURITY_<ENV>_HOST/PORT` keys above), `LOG_LEVEL`, `VERIFY_SSL_CERTS` and `ROOT_CA_PATH` (Windfire Root CA certificate, default `$HOME/opt/windfire/ssl/truststore/WindfireRootCA.crt`).
 
 ## Configure Google Calendar API credentials
 The application authenticates to Google Calendar with OAuth and read-only scope (`calendar.readonly`). It needs an OAuth client file (**credentials.json**) that is not part of the repository:
@@ -143,17 +143,17 @@ Dates in the future are rejected and the user is asked again. Event names are us
 ### Start and stop
 ```bash
 cd app
-./run-apicalendar.sh [1|2|3] [--KEYCLOAK_ENV ENV] [--LOG_LEVEL LEVEL]
+./run-apicalendar.sh [1|2|3] [--SECURITY_ENV ENV] [--LOG_LEVEL LEVEL]
 ```
 * `1|2|3` selects the environment (Development, Test, Production); if omitted you are asked for it
-* `--KEYCLOAK_ENV` selects the Keycloak environment used for authentication: `dev`, `test` or `prod` (or `1|2|3`); if omitted you are asked for it, and pressing Enter selects **Production**. Host and port are read from `KEYCLOAK_<ENV>_HOST` / `KEYCLOAK_<ENV>_PORT` in `app/.env`
+* `--SECURITY_ENV` selects the Windfire Security environment used for authentication: `dev`, `test` or `prod` (or `1|2|3`); if omitted you are asked for it, and pressing Enter selects **Production**. Host and port are read from `WINDFIRE_SECURITY_<ENV>_HOST` / `WINDFIRE_SECURITY_<ENV>_PORT` in `app/.env`
 * `--LOG_LEVEL` overrides `DEFAULT_LOG_LEVEL` (e.g. `DEBUG`, `ERROR`)
 * `-h`/`--help` shows the help, `-v`/`--version` shows the version
 
-The script ([run-apicalendar.sh](app/run-apicalendar.sh)) prepares the virtual environment, asks for the **Keycloak client secret** (unless `KEYCLOAK_CLIENT_SECRET` is already exported) and starts [calendarApiServer.py](app/calendarApiServer.py) with Uvicorn.
+The script ([run-apicalendar.sh](app/run-apicalendar.sh)) prepares the virtual environment and starts [calendarApiServer.py](app/calendarApiServer.py) with Uvicorn.
 
 Other scripts:
-* **[run-apicalendar-background.sh](app/run-apicalendar-background.sh)**: accepts the same arguments as `run-apicalendar.sh`, asks up front for the environment, the Keycloak environment and the client secret (when not given), then starts the server in background, redirecting output to `app/logs/windfire-calendar.log`
+* **[run-apicalendar-background.sh](app/run-apicalendar-background.sh)**: accepts the same arguments as `run-apicalendar.sh`, asks up front for the environment and the Windfire Security environment (when not given), then starts the server in background, redirecting output to `app/logs/windfire-calendar.log`
 * **[stop-apicalendar.sh](app/stop-apicalendar.sh)**: finds the `calendarApiServer.py` process and sends it `SIGTERM`; if it is still running after 10 seconds, it is force-killed with `SIGKILL`
 
 ### HTTP vs HTTPS
@@ -173,7 +173,7 @@ Interactive API documentation (Swagger UI) is available at `/docs`; the root pat
 | POST | `/v1/calendar/events/count/range` | Bearer | Count events between two dates (`event_title`, `start_date`, `end_date` required; `start_date` must not be after `end_date`) |
 | GET | `/v1/calendar/events/upcoming` | Bearer | Next 10 upcoming events |
 
-Calendar endpoints require an `Authorization: Bearer <token>` header. The token is verified remotely through the windfire-security-client module against the `KEYCLOAK_SERVICE` service. Requests without the header get `403`, and invalid or expired tokens get `401`.
+Calendar endpoints require an `Authorization: Bearer <token>` header. The token is verified remotely through the windfire-security-client module against the `WINDFIRE_SECURITY_SERVICE` service. Requests without the header get `403`, and invalid or expired tokens get `401`. If the token cannot be checked, for example because the auth server is unreachable, `WINDFIRE_SECURITY_<ENV>_PORT` points at Keycloak (`8443`) instead of windfire-security (`8444`), or its certificate is not trusted, the API returns `503`. The cause is in `app/logs/windfire_calendar.log` and `~/logs/windfire-security-client.log`.
 
 Example request:
 ```bash
@@ -205,8 +205,8 @@ The script creates the `windfire-calendar-test` virtual environment, then asks f
 
 | Option | Windfire Calendar (`-e`) | Windfire Security (`-s`) |
 |---|---|---|
-| 1 Development | `https://localhost:<PORT>` | `KEYCLOAK_DEV_HOST:KEYCLOAK_DEV_PORT` from [app/.env](app/.env) (`https://localhost:8444`) |
-| 2 Test | `https://localhost:<PORT>` | `KEYCLOAK_TEST_HOST:KEYCLOAK_TEST_PORT` from [app/.env](app/.env) (`https://localhost:8444`) |
+| 1 Development | `https://localhost:<PORT>` | `WINDFIRE_SECURITY_DEV_HOST:WINDFIRE_SECURITY_DEV_PORT` from [app/.env](app/.env) (`https://localhost:8444`) |
+| 2 Test | `https://localhost:<PORT>` | `WINDFIRE_SECURITY_TEST_HOST:WINDFIRE_SECURITY_TEST_PORT` from [app/.env](app/.env) (`https://localhost:8444`) |
 | 3 Production | `https://raspberry02:<PORT>` | `https://raspberry01:8444` (**default**) |
 
 The two choices are independent, so you can for example test a local server that authenticates against production: `./run-test.sh -e 1 -s 3`.
@@ -246,6 +246,8 @@ The script asks for:
 
 It produces `windfire-calendar.key` and `windfire-calendar.crt`, valid for 365 days. Key and certificate files are gitignored.
 
+The script checks the certificate with `openssl verify -x509_strict`, because Python 3.13+ TLS clients reject a certificate without an Authority Key Identifier (`Missing Authority Key Identifier`). Certificates generated before the key identifiers were added to the `.ext` files must be regenerated. `deploy.sh` only generates the production certificate when it is missing, so regenerate it before deploying.
+
 The Windfire Root CA must already exist: create it with `createRootCA.sh` in the windfire-security repository, which asks for the Root CA key passphrase that this script then needs to sign. The script stops if the Root CA certificate or key is missing, and checks the new certificate against the Root CA with `openssl verify`.
 
 ## Deploy to Raspberry Pi
@@ -264,25 +266,24 @@ deployment/deploy.sh --help
 * the Windfire Root CA in `$HOME/opt/windfire/ssl/truststore` (create it with `createRootCA.sh` in windfire-security)
 * the windfire-security-client wheel in the `dist` folder of the sibling `windfire-security-client` repository (build it with `./createModule.sh` in that repository). The Pi installs it as `client-1.0.0-py3-none-any.whl`, so a wheel with a different version is copied but not installed
 * `app/credentials.json` and `app/token.json` (see [Configure Google Calendar API credentials](#configure-google-calendar-api-credentials); run the app locally once to create `token.json`). Both `deploy.sh` and the playbook stop early if one is missing
-* the Keycloak client secret of the `windfire-calendar-srv` client
 
 The production certificate and key are generated for you if they are missing. Your local `app/.env` is not copied: the Pi gets its own `.env` built from the template.
 
 ### What `deploy.sh` does
 1. **Pre-flight checks**: checks for `ansible-playbook`, the SSH key, the Windfire Root CA, the windfire-security-client wheel and the Google files, and stops with a red error if one is missing. If `windfire-calendar.crt` / `.key` are missing from `$HOME/opt/windfire/ssl/certs/raspberry`, it runs [generateServerCert.sh](app/ssl/generateServerCert.sh): choose **3. Production** when asked.
-2. **Secrets**: asks once for the Windfire Security server host and port and the Keycloak service (defaults are the `KEYCLOAK_PROD_HOST` and `KEYCLOAK_SERVICE` values in your local `app/.env`, and port `8444`; this is the windfire-security server, not Keycloak itself on `8443`) and for the Keycloak client secret, which is not echoed. If `KEYCLOAK_CLIENT_SECRET` is already exported, it is used without asking.
+2. **Windfire Security configuration**: asks once for the server host and port and the service (defaults are the `WINDFIRE_SECURITY_PROD_HOST` and `WINDFIRE_SECURITY_SERVICE` values in your local `app/.env`, and port `8444`; this is the windfire-security server, not Keycloak itself on `8443`).
 3. **Playbook**: asks for the `pi` sudo password (`BECOME password`), then runs [windfire-calendar-deploy.yaml](deployment/raspberry/windfire-calendar-deploy.yaml), which uses the shared tasks in [tasks/deploy-app.yaml](deployment/raspberry/tasks/deploy-app.yaml):
    1. stops the `windfire-calendar` service, and any `calendarApiServer.py` process started by hand
    2. removes and recreates `/home/pi/windfire-calendar`, and copies the `app/` folder (without caches, the local venv, certificates, logs, `.env` and the Google files, which are never copied in plaintext)
    3. builds `app/.env` from [windfire-calendar.env.j2](deployment/raspberry/templates/windfire-calendar.env.j2) with non-secret values only (mode `0600`). It sets `ENFORCE_HTTPS=true` and no `CORS_ORIGINS`, so cross-origin requests are disabled on the Pi; add `CORS_ORIGINS` to the template if a browser app needs to call the API
    4. removes any plaintext `credentials.json` and `token.json` left in `app/` by older deployments, copies the server certificate (`0644`) and key (`0600`) to `app/ssl`, and the Windfire Root CA to `/home/pi/opt/windfire/ssl/truststore`
    5. copies [common.sh](common.sh) and the windfire-security-client `dist` folder (to `/home/pi/dist`), creates the virtual environment and runs `installPrereqs.sh 3`
-4. **systemd**: encrypts with `systemd-creds --with-key=host` the Keycloak client secret into `/etc/credstore.encrypted/windfire-calendar-secrets`, and your local `app/credentials.json` and `app/token.json` into `/etc/credstore.encrypted/windfire-calendar-google-client` and `windfire-calendar-google-token` (none of them is stored in plaintext on the Pi). systemd decrypts them at start into the read-only credentials directory of the service, and the unit points `GOOGLE_CREDENTIALS_FILE` / `GOOGLE_TOKEN_FILE` there. It then installs the unit from [windfire-calendar.service.j2](deployment/raspberry/templates/windfire-calendar.service.j2), then enables and starts the service. systemd restarts it 5 seconds after a failure and starts it at boot.
+4. **systemd**: removes the obsolete `/etc/credstore.encrypted/windfire-calendar-secrets` left by older deployments, and encrypts with `systemd-creds --with-key=host` your local `app/credentials.json` and `app/token.json` into `/etc/credstore.encrypted/windfire-calendar-google-client` and `windfire-calendar-google-token` (neither is stored in plaintext on the Pi). systemd decrypts them at start into the read-only credentials directory of the service, and the unit points `GOOGLE_CREDENTIALS_FILE` / `GOOGLE_TOKEN_FILE` there. It then installs the unit from [windfire-calendar.service.j2](deployment/raspberry/templates/windfire-calendar.service.j2), then enables and starts the service. systemd restarts it 5 seconds after a failure and starts it at boot.
 5. **Health check**: waits for port 8443 and calls `https://raspberry02:8443/v1/monitor/health`, checking the certificate against the Windfire Root CA. If the check fails, it prints the last 50 lines of the journal and of the service log, and the deploy fails.
 
 `deploy.sh` prints a green message on success. On any failure it prints a red message and exits with code 1.
 
-[windfire-calendar-full-deploy.yaml](deployment/raspberry/windfire-calendar-full-deploy.yaml) runs the same tasks after updating and upgrading the system packages with apt and installing OpenSSL. `deploy.sh` doesn't run it. To run it, export `KEYCLOAK_SERVER_HOST`, `KEYCLOAK_SERVER_PORT`, `KEYCLOAK_SERVICE` and `KEYCLOAK_CLIENT_SECRET`, then run `ANSIBLE_CONFIG=raspberry/ansible.cfg ansible-playbook raspberry/windfire-calendar-full-deploy.yaml` from the `deployment/` folder; it asks for the `pi` sudo password too. `KEYCLOAK_SERVER_PORT` defaults to `8444` (windfire-security) if not exported; the playbook stops early if one of the other variables is empty.
+[windfire-calendar-full-deploy.yaml](deployment/raspberry/windfire-calendar-full-deploy.yaml) runs the same tasks after updating and upgrading the system packages with apt and installing OpenSSL. `deploy.sh` doesn't run it. To run it, export `WINDFIRE_SECURITY_HOST`, `WINDFIRE_SECURITY_PORT` and `WINDFIRE_SECURITY_SERVICE`, then run `ANSIBLE_CONFIG=raspberry/ansible.cfg ansible-playbook raspberry/windfire-calendar-full-deploy.yaml` from the `deployment/` folder; it asks for the `pi` sudo password too. `WINDFIRE_SECURITY_PORT` defaults to `8444` (windfire-security) if not exported; the playbook stops early if one of the other variables is empty.
 
 Deployment variables (user, folders, certificate names, ports, allowed hosts, log level) are in [deployment/raspberry/conf/config.yaml](deployment/raspberry/conf/config.yaml). `health_check_host` must match the certificate SAN and be listed in `allowed_hosts`.
 
@@ -299,12 +300,14 @@ The service runs with `GOOGLE_INTERACTIVE_AUTH=false`: it refreshes expired acce
 ### Undeploy
 `undeploy.sh` asks for confirmation (skip it with `-y`), then runs [windfire-calendar-undeploy.yaml](deployment/raspberry/windfire-calendar-undeploy.yaml), which:
 1. stops and disables the `windfire-calendar` service, and stops any `calendarApiServer.py` process started by hand
-2. removes the systemd unit and the encrypted credentials (Keycloak secret, Google OAuth client and token), then reloads systemd
+2. removes the systemd unit and the encrypted credentials (Google OAuth client and token, plus the obsolete secrets file of older deployments), then reloads systemd
 3. removes `/home/pi/windfire-calendar`
 
 The Windfire Root CA, the windfire-security-client `dist` folder and `/home/pi/logs` are left in place because other services use them.
 
-> **Note:** the Keycloak host/port selection requires the windfire-security-client version that honours `KEYCLOAK_SERVER_HOST` / `KEYCLOAK_SERVER_PORT`. Production installs the client wheel from `$HOME/dist`, so rebuild it with `./createModule.sh` in `windfire-security-client` and redeploy after updating the client; older wheels ignore these variables and always use their built-in host for the environment.
+> **Note:** the Windfire Security host/port selection requires the windfire-security-client version that honours `WINDFIRE_SECURITY_HOST` / `WINDFIRE_SECURITY_PORT`. Production installs the client wheel from `$HOME/dist`, so rebuild it with `./createModule.sh` in `windfire-security-client` and redeploy after updating the client; older wheels ignore these variables and always use their built-in host for the environment.
+>
+> **Upgrading an existing checkout:** the `KEYCLOAK_*` keys in `app/.env` are now `WINDFIRE_SECURITY_*`. Rename them to match [app/.env_PLACEHOLDER](app/.env_PLACEHOLDER); the start scripts stop with an error until you do.
 
 ## Dependency monitoring and CI
 ### CI

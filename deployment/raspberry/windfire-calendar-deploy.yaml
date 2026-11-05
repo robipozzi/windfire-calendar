@@ -6,10 +6,9 @@
   vars:
     src_dir: "{{ playbook_dir }}"
     mode: u=rwx
-    keycloak_server_host: "{{ lookup('env', 'KEYCLOAK_SERVER_HOST') }}"
-    keycloak_server_port: "{{ lookup('env', 'KEYCLOAK_SERVER_PORT') | default('8444', true) }}"
-    keycloak_service: "{{ lookup('env', 'KEYCLOAK_SERVICE') }}"
-    keycloak_client_secret: "{{ lookup('env', 'KEYCLOAK_CLIENT_SECRET') }}"
+    windfire_security_host: "{{ lookup('env', 'WINDFIRE_SECURITY_HOST') }}"
+    windfire_security_port: "{{ lookup('env', 'WINDFIRE_SECURITY_PORT') | default('8444', true) }}"
+    windfire_security_service: "{{ lookup('env', 'WINDFIRE_SECURITY_SERVICE') }}"
   vars_files:
     - "{{ src_dir }}/conf/config.yaml"
   tasks:

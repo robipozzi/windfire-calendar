@@ -44,7 +44,7 @@
       when: app_pid.rc == 0
       ignore_errors: yes
 
-    # Task 2: Remove systemd unit and encrypted credentials (Keycloak secret, Google OAuth client and token)
+    # Task 2: Remove systemd unit and encrypted credentials (Google OAuth client and token, plus the obsolete secrets file of older deployments)
     - name: Remove Windfire Calendar systemd unit file and encrypted credentials
       file:
         path: "{{ item }}"
