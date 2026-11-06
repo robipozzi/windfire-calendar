@@ -1,4 +1,4 @@
-# Windfire Calendar xxxx
+# Windfire Calendar
 [![CI](https://github.com/robipozzi/windfire-calendar/actions/workflows/ci.yml/badge.svg)](https://github.com/robipozzi/windfire-calendar/actions/workflows/ci.yml)
 
 Windfire Calendar is a Python application that wraps the Google Calendar API to query events on the **primary** calendar of a Google account. The main use case is counting how many times an event with a given title (e.g. *"Palestra"*) occurred in a period.
