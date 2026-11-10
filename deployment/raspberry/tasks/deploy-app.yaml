@@ -46,7 +46,7 @@
     state: stopped
   failed_when: false
 
-# Fallback for processes started by hand with run-apicalendar*.sh before the systemd service existed
+# Fallback for processes started by hand with start-apicalendar*.sh before the systemd service existed
 - name: Get PID for running process "{{ process }}"
   shell: "pgrep -f {{ process }}"
   register: app_pid
