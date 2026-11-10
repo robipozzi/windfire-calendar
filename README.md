@@ -143,17 +143,17 @@ Dates in the future are rejected and the user is asked again. Event names are us
 ### Start and stop
 ```bash
 cd app
-./run-apicalendar.sh [1|2|3] [--SECURITY_ENV ENV] [--LOG_LEVEL LEVEL]
+./start-apicalendar.sh [1|2|3] [--SECURITY_ENV ENV] [--LOG_LEVEL LEVEL]
 ```
 * `1|2|3` selects the environment (Development, Test, Production); if omitted you are asked for it
 * `--SECURITY_ENV` selects the Windfire Security environment used for authentication: `dev`, `test` or `prod` (or `1|2|3`); if omitted you are asked for it, and pressing Enter selects **Production**. Host and port are read from `WINDFIRE_SECURITY_<ENV>_HOST` / `WINDFIRE_SECURITY_<ENV>_PORT` in `app/.env`
 * `--LOG_LEVEL` overrides `DEFAULT_LOG_LEVEL` (e.g. `DEBUG`, `ERROR`)
 * `-h`/`--help` shows the help, `-v`/`--version` shows the version
 
-The script ([run-apicalendar.sh](app/run-apicalendar.sh)) prepares the virtual environment and starts [calendarApiServer.py](app/calendarApiServer.py) with Uvicorn.
+The script ([start-apicalendar.sh](app/start-apicalendar.sh)) prepares the virtual environment and starts [calendarApiServer.py](app/calendarApiServer.py) with Uvicorn.
 
 Other scripts:
-* **[run-apicalendar-background.sh](app/run-apicalendar-background.sh)**: accepts the same arguments as `run-apicalendar.sh`, asks up front for the environment and the Windfire Security environment (when not given), then starts the server in background, redirecting output to `app/logs/windfire-calendar.log`
+* **[start-apicalendar-background.sh](app/start-apicalendar-background.sh)**: accepts the same arguments as `start-apicalendar.sh`, asks up front for the environment and the Windfire Security environment (when not given), then starts the server in background, redirecting output to `app/logs/windfire-calendar.log`
 * **[stop-apicalendar.sh](app/stop-apicalendar.sh)**: finds the `calendarApiServer.py` process and sends it `SIGTERM`; if it is still running after 10 seconds, it is force-killed with `SIGKILL`
 
 ### HTTP vs HTTPS
@@ -193,12 +193,12 @@ Errors are returned as JSON: `422` for malformed request bodies (e.g. missing `e
 > **Note:** the REST API also uses Google OAuth. Run the terminal application (or the server) once on a machine with a browser to create `token.json`, then deploy: `deploy.sh` encrypts it along with `credentials.json` on the Pi.
 
 ## Test the REST API
-The [test/](test/) folder contains a test suite that checks every endpoint of a running server over HTTPS.
+The [test/](test/) folder contains a test suite that checks every endpoint of the server over HTTPS.
 ```bash
 cd test
 ./run-test.sh [-p PORT] [-e 1|2|3] [-s 1|2|3]
 ```
-The script creates the `windfire-calendar-test` virtual environment, then asks for:
+With no options, the script creates the `windfire-calendar-test` virtual environment, then asks for:
 * the **Windfire Calendar** environment (the server under test), unless passed with `-e`/`--env`
 * the **Windfire Security** environment (the server that issues the access token), unless passed with `-s`/`--security-env`. An empty answer selects Production
 * username (default `windfire`), password and authentication service (default `windfire-calendar-srv`)
@@ -210,6 +210,12 @@ The script creates the `windfire-calendar-test` virtual environment, then asks f
 | 3 Production | `https://raspberry02:<PORT>` | `https://raspberry01:8444` (**default**) |
 
 The two choices are independent, so you can for example test a local server that authenticates against production: `./run-test.sh -e 1 -s 3`.
+
+For local environments, the script starts the servers it needs in background before the tests and stops them when the tests finish (also when they fail or you press Ctrl-C):
+* **Windfire Security** (`-s 1|2`, when `WINDFIRE_SECURITY_<ENV>_HOST` in [app/.env](app/.env) is `localhost`): started with `start-auth-server-background.sh -p <WINDFIRE_SECURITY_<ENV>_PORT>` from the windfire-security repository, expected in `../windfire-security` next to this one (see `WINDFIRE_SECURITY_HOME` in [common.sh](common.sh)). Its output goes to `windfire-security/server/logs/windfire-security.log`. The server still needs Keycloak reachable at the `KEYCLOAK_SERVER_URL` set in its `.env`
+* **Windfire Calendar** (`-e 1|2`): started with [start-apicalendar-background.sh](app/start-apicalendar-background.sh), passing the selected environments, so the server authenticates against the same Windfire Security server as the tests. Its output goes to `app/logs/windfire-calendar.log`
+
+The script waits up to 120 seconds for each server's `/v1/monitor/health` endpoint to answer; if it doesn't, it prints the end of the server log and exits with `1`. A server that already answers on its port is reused and left running: only the servers the script started are stopped. If `-p` differs from `API_PORT_SECURE` in `app/.env`, the Windfire Calendar server is not started and must already be running on that port. Production servers (`raspberry01`, `raspberry02`) are never started or stopped.
 
 [test.py](test/test.py) can also be run directly inside the virtual environment. It picks each environment from its command-line argument (`--env`, `--security-env`), then from the `ENVIRONMENT` / `SECURITY_ENVIRONMENT` variables (`1|2|3` or `dev|test|prod`), and prompts only if neither is set. `--only <text>` runs just the tests whose group or name contains that text (e.g. `--only count/range`).
 
@@ -293,7 +299,7 @@ sudo systemctl status windfire-calendar
 sudo systemctl restart windfire-calendar
 sudo systemctl stop windfire-calendar
 ```
-Logs are in `/home/pi/windfire-calendar/app/logs`: `windfire-calendar.log` has the process stdout/stderr, and `windfire_calendar.log` is the application log, rotated daily. `journalctl -u windfire-calendar` shows start, stop and restart events. The `run-apicalendar*.sh` and `stop-apicalendar.sh` scripts are for local development and test only.
+Logs are in `/home/pi/windfire-calendar/app/logs`: `windfire-calendar.log` has the process stdout/stderr, and `windfire_calendar.log` is the application log, rotated daily. `journalctl -u windfire-calendar` shows start, stop and restart events. The `start-apicalendar*.sh` and `stop-apicalendar.sh` scripts are for local development and test only.
 
 The service runs with `GOOGLE_INTERACTIVE_AUTH=false`: it refreshes expired access tokens in memory only and never writes the token back. A redeploy re-encrypts your local `token.json`. If Google revokes the refresh token, the API returns errors and the log says to regenerate the token locally (`cd app && ./run-calendar.sh`) and redeploy.
 
