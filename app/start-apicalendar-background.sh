@@ -43,8 +43,8 @@ run()
         runArgs+=(--LOG_LEVEL "$LOG_LEVEL")
     fi
 
-    echo -e "${YELLOW}Starting in background: ./run-apicalendar.sh ${runArgs[*]} > logs/windfire-calendar.log 2>&1 &${RESET}"
-    ./run-apicalendar.sh "${runArgs[@]}" > logs/windfire-calendar.log 2>&1 &
+    echo -e "${YELLOW}Starting in background: ./start-apicalendar.sh ${runArgs[*]} > logs/windfire-calendar.log 2>&1 &${RESET}"
+    ./start-apicalendar.sh "${runArgs[@]}" > logs/windfire-calendar.log 2>&1 &
 }
 
 # ===== ARGUMENT PARSING FUNCTION =====
@@ -76,8 +76,8 @@ parseArguments() {
                 esac
                 ;;
             -h|--help)
-                echo "Usage: ./run-apicalendar-background.sh [1|2|3] [--SECURITY_ENV dev|test|prod] [--LOG_LEVEL LEVEL]"
-                echo "Same arguments as ./run-apicalendar.sh (see ./run-apicalendar.sh --help); output goes to logs/windfire-calendar.log"
+                echo "Usage: ./start-apicalendar-background.sh [1|2|3] [--SECURITY_ENV dev|test|prod] [--LOG_LEVEL LEVEL]"
+                echo "Same arguments as ./start-apicalendar.sh (see ./start-apicalendar.sh --help); output goes to logs/windfire-calendar.log"
                 exit 0
                 ;;
             *)

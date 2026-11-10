@@ -127,7 +127,7 @@ printHelp() {
     echo -e "  4. Run the Windfire Calendar FastAPI server"
     echo
     echo -e "${BOLD}USAGE:${RESET}"
-    echo -e "    ./run-apicalendar.sh [1|2|3] [--SECURITY_ENV ENV] [--LOG_LEVEL LEVEL]"
+    echo -e "    ./start-apicalendar.sh [1|2|3] [--SECURITY_ENV ENV] [--LOG_LEVEL LEVEL]"
     echo
     echo -e "${BOLD}ARGUMENTS:${RESET}"
     echo -e "1|2|3                   Application environment: 1=Development, 2=Test, 3=Production (prompted if omitted)"
@@ -143,16 +143,16 @@ printHelp() {
     echo -e "-h, --help              Display this help message and exit"
     echo
     echo -e "${BOLD}EXAMPLES:${RESET}"
-    echo -e "./run-apicalendar.sh"
+    echo -e "./start-apicalendar.sh"
     echo -e "    Prompt for application environment and Windfire Security environment"
     echo
-    echo -e "./run-apicalendar.sh 3 --SECURITY_ENV prod"
+    echo -e "./start-apicalendar.sh 3 --SECURITY_ENV prod"
     echo -e "    Run in Production, authenticating against the Production Windfire Security server"
     echo
-    echo -e "./run-apicalendar.sh 1 --SECURITY_ENV dev --LOG_LEVEL DEBUG"
+    echo -e "./start-apicalendar.sh 1 --SECURITY_ENV dev --LOG_LEVEL DEBUG"
     echo -e "    Run in Development against the Development Windfire Security server, with DEBUG logging"
     echo
-    echo -e "./run-apicalendar.sh --help"
+    echo -e "./start-apicalendar.sh --help"
     echo -e "    Display this help message"
     echo
     echo -e "${BOLD}WHAT THIS SCRIPT DOES:${RESET}"

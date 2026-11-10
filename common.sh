@@ -25,6 +25,8 @@ WINDFIRE_CALENDAR_HOME="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WINDFIRE_SERVER_CERTIFICATE=windfire-calendar.crt
 WINDFIRE_SERVER_KEY=windfire-calendar.key
 SECURITY_CLIENT_DIST_DIR=$WINDFIRE_CALENDAR_HOME/../windfire-security-client/dist
+# Windfire Security repository, used by the test suite to start/stop a local Windfire Security server
+WINDFIRE_SECURITY_HOME=$WINDFIRE_CALENDAR_HOME/../windfire-security
 ANSIBLE_SSH_KEY=$HOME/.ssh/ansible_rsa
 
 # ===== PYTHON VIRTUAL ENVIRONMENTS VARIABLES =====
