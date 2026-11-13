@@ -30,21 +30,30 @@ installPythonModules()
 installCustomPythonModules()
 {
     ENVIRONMENT_OPTION=$1
-    PIP_CMD="pip3 install"
     INSTALL_ARGS=$HOME/dev/windfire-security-client
     if [ -n "$ENVIRONMENT_OPTION" ] && [ "$ENVIRONMENT_OPTION" -eq 3 ]; then
-        # Newest windfire-security-client wheel synced by the deployment, so version bumps need no change here
-        INSTALL_ARGS=$(ls -v $HOME/dist/client-*-py3-none-any.whl 2>/dev/null | tail -1)
-        if [ -z "$INSTALL_ARGS" ]; then
-            echo -e "${RED}Error: no client-*.whl found in $HOME/dist${RESET}"
+        # windfire-security-client wheel synced by the deployment to $HOME/dist: exactly one must be there
+        # (this script is sourced, so no shopt nullglob: an unmatched glob stays as the literal pattern)
+        local wheels=("$HOME"/dist/windfire_security_client-*.whl)
+        if [ ! -e "${wheels[0]}" ]; then
+            echo -e "${RED}Error: no windfire_security_client-*.whl found in $HOME/dist${RESET}"
             return 1
         fi
-        PIP_CMD="pip3 install $INSTALL_ARGS"
+        if [ ${#wheels[@]} -gt 1 ]; then
+            echo -e "${RED}Error: more than one windfire_security_client-*.whl found in $HOME/dist, keep exactly one:${RESET}"
+            printf '  %s\n' "${wheels[@]##*/}"
+            return 1
+        fi
+        INSTALL_ARGS=${wheels[0]}
+        # The package was distributed as "client" up to 1.0.0: remove it so it does not stay in the venv next to the new one
+        echo "Uninstall old client distribution, if present"
+        pip3 uninstall -y client || return 1
+        echo "Install custom module from $INSTALL_ARGS"
+        pip3 install "$INSTALL_ARGS"
     else
-        PIP_CMD="pip3 install -e $INSTALL_ARGS"
+        echo "Install custom module from $INSTALL_ARGS"
+        pip3 install -e "$INSTALL_ARGS"
     fi
-    echo "Install custom module from $INSTALL_ARGS"
-    $PIP_CMD
 }
 
 # ===== EXECUTION =====
