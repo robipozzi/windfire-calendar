@@ -20,14 +20,10 @@ async def https_enforcement_middleware(request: Request, call_next):
     
     # Check if HTTPS enforcement is enabled
     if ENFORCE_HTTPS == True:
-        # Check if request is HTTPS
-        # Note: When behind a proxy/load balancer, check X-Forwarded-Proto header
+        # Check if request is HTTPS from the connection scheme only:
+        # X-Forwarded-Proto / X-Forwarded-SSL are client-controlled (no trusted proxy in front of the API), so they are ignored
         logger.debug(f"ENFORCE_HTTPS is {ENFORCE_HTTPS}. Checking if request is HTTPS ...")
-        is_https = (
-            request.url.scheme == "https" or
-            request.headers.get("x-forwarded-proto") == "https" or
-            request.headers.get("x-forwarded-ssl") == "on"
-        )
+        is_https = request.url.scheme == "https"
         
         if not is_https:
             # Redirect HTTP to HTTPS

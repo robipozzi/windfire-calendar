@@ -9,8 +9,6 @@ from fastapi.middleware.cors import CORSMiddleware # pyright: ignore[reportMissi
 from starlette.middleware.trustedhost import TrustedHostMiddleware # pyright: ignore[reportMissingImports]
 from fastapi.middleware.gzip import GZipMiddleware # pyright: ignore[reportMissingImports]
 from starlette.middleware.base import BaseHTTPMiddleware # pyright: ignore[reportMissingImports]
-#from slowapi import Limiter
-#from slowapi.util import get_remote_address
 from apiRouter import api
 from middlewares import https_enforcement_middleware
 from config.settings import settings
@@ -23,6 +21,8 @@ SERVICE_NAME = settings.get('APP_NAME')
 # HTTPs enforcement and allowed hosts from config
 ENFORCE_HTTPS = settings.get('ENFORCE_HTTPS')
 ALLOWED_HOSTS = [host.strip() for host in settings.get('ALLOWED_HOSTS').split(',') if host.strip()]
+# Swagger UI, ReDoc and the OpenAPI document are served only when enabled (default: disabled)
+ENABLE_API_DOCS = settings.get('ENABLE_API_DOCS')
 # CORS origins are full origins (scheme://host[:port]) of browser apps calling the API, not hostnames
 CORS_ORIGINS = [origin.strip() for origin in (settings.get('CORS_ORIGINS') or '').split(',') if origin.strip()]
 # ========== END - VARIABLES SECTION ========== #
@@ -47,8 +47,15 @@ app = FastAPI(
     summary="A secured REST API for Google Calendar operations",
     version="1.0.0",
     lifespan=lifespan,
-    redirect_slashes=False
+    redirect_slashes=False,
+    docs_url="/docs" if ENABLE_API_DOCS else None,
+    redoc_url="/redoc" if ENABLE_API_DOCS else None,
+    openapi_url="/openapi.json" if ENABLE_API_DOCS else None
 )
+if ENABLE_API_DOCS:
+    logger.info("📖 API docs enabled at /docs, /redoc and /openapi.json")
+else:
+    logger.info("API docs disabled (set ENABLE_API_DOCS=true to enable them)")
 
 # =======================================================================
 # ================== START - Enable CORS configuration ==================
@@ -92,18 +99,16 @@ async def custom_https_middleware(request: Request, call_next):
 
 #app.add_middleware(BaseHTTPMiddleware, dispatch=log_request_middleware)
 
-#limiter = Limiter(key_func=get_remote_address)
-#app.state.limiter = limiter
-
 # tweak this to see the most efficient size
 app.add_middleware(GZipMiddleware, minimum_size=100)
 
 # Include API router to enable API endpoints
 app.include_router(api)
-# Root endpoint redirecting to API docs
-@app.get("/", tags=["Root"])
-async def root():
-    return RedirectResponse("/docs")
+# Root endpoint redirecting to API docs, only registered when the docs are enabled (404 otherwise)
+if ENABLE_API_DOCS:
+    @app.get("/", tags=["Root"])
+    async def root():
+        return RedirectResponse("/docs")
 
 # Exception handlers
 @app.exception_handler(HTTPException)
@@ -145,6 +150,7 @@ def main():
     logger.info(f"  SSL_CERTFILE: {settings.get('SSL_CERTFILE')}")
     logger.info(f"  ENFORCE_HTTPS: {settings.get('ENFORCE_HTTPS')}")
     logger.info(f"  ALLOWED_HOSTS: {settings.get('ALLOWED_HOSTS')}")
+    logger.info(f"  ENABLE_API_DOCS: {settings.get('ENABLE_API_DOCS')}")
     logger.info(f"  ENVIRONMENT: {os.getenv('ENVIRONMENT')}")
     logger.info(f"  WINDFIRE_SECURITY_ENVIRONMENT: {os.getenv('WINDFIRE_SECURITY_ENVIRONMENT')}")
     logger.info(f"  WINDFIRE_SECURITY_HOST: {os.getenv('WINDFIRE_SECURITY_HOST')}")
@@ -173,8 +179,8 @@ def main():
         logger.info(f"🔒 Starting server with HTTPS on {host}:{port}")
         logger.info(f"   SSL Key: {ssl_keyfile}")
         logger.info(f"   SSL Cert: {ssl_certfile}")
-        # Start Uvicorn with SSL
-        uvicorn.run(app, host=host, port=port, ssl_keyfile=ssl_keyfile, ssl_certfile=ssl_certfile)
+        # Start Uvicorn with SSL; proxy_headers=False so X-Forwarded-* headers never change the scheme or client address
+        uvicorn.run(app, host=host, port=port, ssl_keyfile=ssl_keyfile, ssl_certfile=ssl_certfile, proxy_headers=False)
     else:
         if ENFORCE_HTTPS:
             logger.warning("⚠️  ENFORCE_HTTPS is enabled but no SSL certificates configured!")
@@ -183,8 +189,8 @@ def main():
         
         logger.info(f"🌐 Starting server with HTTP on {host}:{port}")
         logger.warning("⚠️  Running without TLS/SSL - not recommended for production")
-        # Start Uvicorn without SSL 
-        uvicorn.run(app, host=host, port=port)
+        # Start Uvicorn without SSL; proxy_headers=False so X-Forwarded-* headers never change the scheme or client address
+        uvicorn.run(app, host=host, port=port, proxy_headers=False)
 
 ################### MAIN PROGRAM EXECUTION ###################
 if __name__ == "__main__":
