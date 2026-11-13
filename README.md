@@ -90,6 +90,7 @@ Configuration is read from **app/.env** (loaded with python-dotenv). Copy [app/.
 | `ENFORCE_HTTPS` | `true` to serve over HTTPS and redirect HTTP requests to HTTPS; `false` for plain HTTP (development only) |
 | `ALLOWED_HOSTS` | Comma-separated list of trusted hostnames accepted in the `Host` header (check is skipped when set to `*`) |
 | `CORS_ORIGINS` | Optional comma-separated list of browser origins allowed to call the API, with scheme and port (e.g. `https://app.example.com:3000`). Empty or unset disables cross-origin requests |
+| `ENABLE_API_DOCS` | `true` serves Swagger UI (`/docs`), ReDoc (`/redoc`) and `/openapi.json`, and redirects `/` to `/docs`; `false` or unset (default) serves none of them, and `/` returns `404`. `true` in the template for local use, `false` on the Pi |
 | `WINDFIRE_SECURITY_DEV_HOST` / `WINDFIRE_SECURITY_DEV_PORT` | Development Windfire Security auth server (e.g. `localhost` / `8444`) |
 | `WINDFIRE_SECURITY_TEST_HOST` / `WINDFIRE_SECURITY_TEST_PORT` | Test Windfire Security auth server (e.g. `localhost` / `8444`) |
 | `WINDFIRE_SECURITY_PROD_HOST` / `WINDFIRE_SECURITY_PROD_PORT` | Production Windfire Security auth server (e.g. `raspberry01` / `8444`) |
@@ -160,16 +161,18 @@ Other scripts:
 * If `ENFORCE_HTTPS=true` and both `SSL_KEYFILE` and `SSL_CERTFILE` are set, the server starts with **HTTPS on `API_PORT_SECURE`**. It exits if the key or certificate file does not exist
 * Otherwise it starts with **plain HTTP on `API_PORT`** and logs a warning. When running over plain HTTP, also set `ENFORCE_HTTPS=false`: with `ENFORCE_HTTPS=true` and no certificates, every request except the health check is redirected to `https://` on the HTTP port and fails
 
-With `ENFORCE_HTTPS=true`, HTTP requests (also checking the `X-Forwarded-Proto` and `X-Forwarded-SSL` headers set by proxies) are redirected to HTTPS with a `307`, except for the health endpoint `/v1/monitor/health`, which stays reachable over HTTP for load balancer checks. All other responses get security headers (`Strict-Transport-Security`, `X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`), and responses are GZip compressed.
+With `ENFORCE_HTTPS=true`, HTTP requests are redirected to HTTPS with a `307`, except for the health endpoint `/v1/monitor/health`, which stays reachable over HTTP for load balancer checks. All other responses get security headers (`Strict-Transport-Security`, `X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`), and responses are GZip compressed.
+
+HTTPS is decided from the scheme of the connection only. There is no trusted proxy in front of the API, so `X-Forwarded-Proto`, `X-Forwarded-SSL` and `X-Forwarded-For` are ignored: the middleware does not read them and Uvicorn runs with `proxy_headers=False`, so a client cannot fake HTTPS or its address with them.
 
 ### Endpoints
-Interactive API documentation (Swagger UI) is available at `/docs`; the root path `/` redirects there.
+With `ENABLE_API_DOCS=true`, interactive API documentation is available at `/docs` (Swagger UI) and `/redoc`, the OpenAPI document at `/openapi.json`, and the root path `/` redirects to `/docs`. With `ENABLE_API_DOCS=false` (the default, and the setting on the Pi) all four return `404`.
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
 | GET | `/v1/monitor/health` | No | Health check, returns `{"status": "healthy", "service": "<APP_NAME>"}` |
-| POST | `/v1/calendar/events/count/year` | Bearer | Count events for a year (`event_title`, `year` required). For the current year it counts up to today; future years return `400` |
-| POST | `/v1/calendar/events/count/today` | Bearer | Count events from a start date up to today (`event_title`, `start_date` required; a start date after today returns `400`) |
+| POST | `/v1/calendar/events/count/year` | Bearer | Count events for a year (`event_title`, `year` required). For the current year it counts up to today; future years return `400` (`Invalid year, expected a year between 1 and the current year`) |
+| POST | `/v1/calendar/events/count/today` | Bearer | Count events from a start date up to today (`event_title`, `start_date` required; a start date after today returns `400` (`Invalid start_date, expected a date on or before today`)) |
 | POST | `/v1/calendar/events/count/range` | Bearer | Count events between two dates (`event_title`, `start_date`, `end_date` required; `start_date` must not be after `end_date`) |
 | GET | `/v1/calendar/events/upcoming` | Bearer | Next 10 upcoming events |
 
@@ -188,7 +191,9 @@ Response:
 ```
 The upcoming events endpoint returns `{"events": [{"id", "summary", "start", "end", "description"}, ...], "count": N}`.
 
-Errors are returned as JSON: `422` for malformed request bodies (e.g. missing `event_title` or dates not in `YYYY-MM-DD` format), `400` for parameters missing for the specific endpoint or an invalid date range, `401`/`403` for authentication failures, `500` for errors while calling Google Calendar. HTTP errors include `detail`, `path` and `timestamp`; unexpected errors return `500` with `detail` and `path` only.
+Errors are returned as JSON: `422` for malformed request bodies (e.g. missing `event_title` or dates not in `YYYY-MM-DD` format), `400` for parameters missing for the specific endpoint or an invalid year, start date or date range, `401`/`403` for authentication failures, `500` for errors while calling Google Calendar (`Failed to count events`, `Failed to get upcoming events`). HTTP errors include `detail`, `path` and `timestamp`; unexpected errors return `500` with `detail` and `path` only. The `detail` is always a fixed message: exception text never reaches the response, it is logged in `app/logs/windfire_calendar.log` (with the stack trace for `500` errors).
+
+The API does not rate-limit requests itself: rate limiting of token verification (`/verify`) lives in windfire-security.
 
 > **Note:** the REST API also uses Google OAuth. Run the terminal application (or the server) once on a machine with a browser to create `token.json`, then deploy: `deploy.sh` encrypts it along with `credentials.json` on the Pi.
 
@@ -226,7 +231,7 @@ Other environment variables:
 * `VERIFY_SSL_CERTS` / `ROOT_CA_PATH`: the server certificates are verified with the Windfire Root CA from `$HOME/opt/windfire/ssl/truststore/WindfireRootCA.crt` (`VERIFY_SSL_CERTS=true` in [common.sh](common.sh))
 
 The suite covers:
-* **Monitor**: health, the `/` → `/docs` redirect, and that the OpenAPI document lists all 5 endpoints
+* **Monitor**: health and the API docs. The suite detects whether the docs are enabled from `/openapi.json`: if enabled (`ENABLE_API_DOCS=true`, local `.env`), it checks the `/` → `/docs` redirect and that the OpenAPI document lists all 5 endpoints; if disabled (production), it checks that `/`, `/docs`, `/redoc` and `/openapi.json` return `404`
 * **Security**: login with valid credentials (this token is used by the rest of the suite), and a wrong password returning no token
 * **Authorization**: every protected endpoint rejects a request with no Bearer header (401/403) or with a fake token (401)
 * **Security headers**: HSTS, `X-Content-Type-Options` and `X-Frame-Options` on protected responses
@@ -281,7 +286,7 @@ The production certificate and key are generated for you if they are missing. Yo
 3. **Playbook**: asks for the `pi` sudo password (`BECOME password`), then runs [windfire-calendar-deploy.yaml](deployment/raspberry/windfire-calendar-deploy.yaml), which uses the shared tasks in [tasks/deploy-app.yaml](deployment/raspberry/tasks/deploy-app.yaml):
    1. stops the `windfire-calendar` service, and any `calendarApiServer.py` process started by hand
    2. removes and recreates `/home/pi/windfire-calendar`, and copies the `app/` folder (without caches, the local venv, certificates, logs, `.env` and the Google files, which are never copied in plaintext)
-   3. builds `app/.env` from [windfire-calendar.env.j2](deployment/raspberry/templates/windfire-calendar.env.j2) with non-secret values only (mode `0600`). It sets `ENFORCE_HTTPS=true` and no `CORS_ORIGINS`, so cross-origin requests are disabled on the Pi; add `CORS_ORIGINS` to the template if a browser app needs to call the API
+   3. builds `app/.env` from [windfire-calendar.env.j2](deployment/raspberry/templates/windfire-calendar.env.j2) with non-secret values only (mode `0600`). It sets `ENFORCE_HTTPS=true`, `ENABLE_API_DOCS=false` (no Swagger UI, ReDoc or OpenAPI document on the Pi) and no `CORS_ORIGINS`, so cross-origin requests are disabled on the Pi; add `CORS_ORIGINS` to the template if a browser app needs to call the API
    4. removes any plaintext `credentials.json` and `token.json` left in `app/` by older deployments, copies the server certificate (`0644`) and key (`0600`) to `app/ssl`, and the Windfire Root CA to `/home/pi/opt/windfire/ssl/truststore`
    5. copies [common.sh](common.sh) and the windfire-security-client `dist` folder (to `/home/pi/dist`), creates the virtual environment and runs `installPrereqs.sh 3`
 4. **systemd**: removes the obsolete `/etc/credstore.encrypted/windfire-calendar-secrets` left by older deployments, and encrypts with `systemd-creds --with-key=host` your local `app/credentials.json` and `app/token.json` into `/etc/credstore.encrypted/windfire-calendar-google-client` and `windfire-calendar-google-token` (neither is stored in plaintext on the Pi). systemd decrypts them at start into the read-only credentials directory of the service, and the unit points `GOOGLE_CREDENTIALS_FILE` / `GOOGLE_TOKEN_FILE` there. It then installs the unit from [windfire-calendar.service.j2](deployment/raspberry/templates/windfire-calendar.service.j2), then enables and starts the service. systemd restarts it 5 seconds after a failure and starts it at boot.
