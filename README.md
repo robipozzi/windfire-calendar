@@ -53,9 +53,9 @@ windfire-calendar/
 ## Prerequisites
 * **Python 3.11 or later** with the `venv` module (the API server uses `datetime.UTC`)
 * A **Google account** and a Google Cloud project with the Google Calendar API enabled (see [Configure Google Calendar API credentials](#configure-google-calendar-api-credentials))
-* The **windfire-security-client** Python package (module `client.authClient`), used by the REST API and by the test client to authenticate and verify tokens. The install scripts expect it:
+* The **windfire-security-client** Python package (distribution `windfire-security-client` 1.1.0 or later, import package `client`, module `client.authClient`), used by the REST API and by the test client to authenticate and verify tokens. The install scripts expect it:
   * in **development/test**: as source code in `$HOME/dev/windfire-security-client` (installed in editable mode, `pip install -e`)
-  * in **production** (environment option `3`): as a wheel in `$HOME/dist/client-1.0.0-py3-none-any.whl`
+  * in **production** (environment option `3`): as a single `windfire_security_client-*.whl` wheel in `$HOME/dist`. The install stops with an error if there is none or more than one, and runs `pip3 uninstall -y client` first, so the old `client` distribution (1.0.0 and earlier) does not stay in the venv next to the new one
 * For the REST API: a reachable Windfire Security service
 * For HTTPS: **OpenSSL** and the **Windfire Root CA** key and certificate (see [TLS certificates](#tls-certificates))
 * For deployment: **Ansible**, **rsync** and SSH access to the Raspberry Pi (see [What you need before deploying](#what-you-need-before-deploying))
@@ -72,7 +72,7 @@ All scripts `source ../common.sh`, so they must be run **from their own folder**
 The following scripts are available in [app/](app/) (with equivalent versions in [test/](test/)):
 * **[createPythonVenv.sh](app/createPythonVenv.sh)**: creates the virtual environment if it does not exist, activates it and installs the prerequisites
 * **[activatePythonVenv.sh](app/activatePythonVenv.sh)**: activates an existing virtual environment
-* **[installPrereqs.sh](app/installPrereqs.sh)**: installs the Python modules pinned in `requirements.txt` (Google API client and OAuth libraries, FastAPI, Uvicorn, Pydantic, PyJWT, colorama, python-dateutil, cryptography) and the custom windfire-security-client module. Pass `3` as argument to install the production wheel instead of the editable source
+* **[installPrereqs.sh](app/installPrereqs.sh)**: installs the Python modules pinned in `requirements.txt` (Google API client and OAuth libraries, FastAPI, Uvicorn, Pydantic, PyJWT, colorama, python-dateutil, cryptography) and the custom windfire-security-client module. Pass `3` as argument to install the production wheel (`$HOME/dist/windfire_security_client-*.whl`) instead of the editable source
 * **[deactivatePythonVenv.sh](app/deactivatePythonVenv.sh)**: prints the command to deactivate the environment
 
 The run scripts described below call `createPythonVenv.sh` automatically, so usually you don't need to run these scripts yourself. Note that the app version reinstalls prerequisites on every run, while the test version installs them only when it creates the virtual environment. To leave a virtual environment, type **deactivate** in the terminal.
@@ -270,7 +270,7 @@ deployment/deploy.sh --help
 * `rsync` both locally and on the Pi (used by the Ansible `synchronize` module)
 * on the Pi: Python 3.11 or later and systemd with `systemd-creds` (systemd 250 or later, e.g. Raspberry Pi OS Bookworm)
 * the Windfire Root CA in `$HOME/opt/windfire/ssl/truststore` (create it with `createRootCA.sh` in windfire-security)
-* the windfire-security-client wheel in the `dist` folder of the sibling `windfire-security-client` repository (build it with `./createModule.sh` in that repository). The Pi installs it as `client-1.0.0-py3-none-any.whl`, so a wheel with a different version is copied but not installed
+* the windfire-security-client wheel in the `dist` folder of the sibling `windfire-security-client` repository (build it with `./createModule.sh` in that repository). It must hold exactly one `windfire_security_client-*.whl`: `deploy.sh` stops if there is none or more than one, because the Pi installs the single wheel it finds in `/home/pi/dist`
 * `app/credentials.json` and `app/token.json` (see [Configure Google Calendar API credentials](#configure-google-calendar-api-credentials); run the app locally once to create `token.json`). Both `deploy.sh` and the playbook stop early if one is missing
 
 The production certificate and key are generated for you if they are missing. Your local `app/.env` is not copied: the Pi gets its own `.env` built from the template.

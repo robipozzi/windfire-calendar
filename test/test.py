@@ -43,7 +43,7 @@ ALL_ENDPOINTS = {"/v1/monitor/health": "get", **CALENDAR_ENDPOINTS}
 username = os.getenv("USERNAME")
 password = os.getenv("PASSWORD")
 service = os.getenv("SERVICE")
-verify_ssl = os.getenv("VERIFY_SSL_CERTS", "false").strip().lower() == "true"
+verify_ssl = os.getenv("VERIFY_SSL_CERTS", "true").strip().lower() == "true"
 ca_bundle_path = os.getenv("ROOT_CA_PATH")
 event_title = os.getenv("EVENT_TITLE", "Palestra")
 

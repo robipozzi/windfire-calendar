@@ -139,13 +139,19 @@ checkSSLCertificates()
 checkSecurityClientWheel()
 {
     printBanner "Check windfire-security-client wheel"
-    local wheels=("$SECURITY_CLIENT_DIST_DIR"/client-*.whl)
+    local wheels=("$SECURITY_CLIENT_DIST_DIR"/windfire_security_client-*.whl)
     if [ ! -f "${wheels[0]}" ]; then
-        echo -e "${RED}Error: no client-*.whl found in $SECURITY_CLIENT_DIST_DIR${RESET}"
+        echo -e "${RED}Error: no windfire_security_client-*.whl found in $SECURITY_CLIENT_DIST_DIR${RESET}"
         echo -e "${RED}Build it with ./createModule.sh in the windfire-security-client repository${RESET}"
         exit 1
     fi
-    echo -e "${GREEN}windfire-security-client wheel found: ${wheels[*]##*/}${RESET}"
+    # installPrereqs.sh on the Pi installs exactly one wheel and refuses to choose between several
+    if [ ${#wheels[@]} -gt 1 ]; then
+        echo -e "${RED}Error: more than one windfire_security_client-*.whl found in $SECURITY_CLIENT_DIST_DIR, keep only the one to deploy:${RESET}"
+        printf '  %s\n' "${wheels[@]##*/}"
+        exit 1
+    fi
+    echo -e "${GREEN}windfire-security-client wheel found: ${wheels[0]##*/}${RESET}"
     echo
 }
 
