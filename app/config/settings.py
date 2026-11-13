@@ -27,15 +27,12 @@ class Settings():
         Returns:
             The value of the environment variable or None if not set
         """
-        if key == 'ENFORCE_HTTPS':
-            value = None
+        # Boolean flags: true/1/yes/on (any case) enable them, anything else or unset disables them
+        if key in ('ENFORCE_HTTPS', 'ENABLE_API_DOCS'):
             raw = os.getenv(key)
             if isinstance(raw, str):
-                normalized = raw.strip().lower()
-                value = normalized in ('true', '1', 'yes', 'on')
-            else:
-                value = bool(raw)
-            return value
+                return raw.strip().lower() in ('true', '1', 'yes', 'on')
+            return False
         
         if key in ('API_PORT', 'API_PORT_SECURE'):
             raw = os.getenv(key)

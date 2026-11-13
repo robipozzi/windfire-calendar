@@ -280,15 +280,29 @@ def test_health():
     assert result.get("service"), "service missing"
 
 
+# The API docs are served only with ENABLE_API_DOCS=true (local .env); they are disabled in production
+def docs_enabled():
+    status = call("get", "/openapi.json").status_code
+    assert status in (200, 404), f"/openapi.json returned {status}, expected 200 (docs enabled) or 404 (docs disabled)"
+    return status == 200
+
+
 @test_case("root redirect", group="Monitor")
 def test_root_redirect():
     response = call("get", "/", allow_redirects=False)
+    if not docs_enabled():
+        expect_status(response, 404)
+        return
     expect_status(response, 307)
     assert response.headers.get("location") == "/docs", f"location is {response.headers.get('location')!r}"
 
 
 @test_case("OpenAPI contract", group="Monitor")
 def test_openapi_contract():
+    if not docs_enabled():
+        for path in ("/docs", "/redoc", "/openapi.json"):
+            expect_status(call("get", path), 404)
+        return
     paths = expect_status(call("get", "/openapi.json"), 200).get("paths", {})
     for path, method in ALL_ENDPOINTS.items():
         assert path in paths, f"{path} missing from OpenAPI"
