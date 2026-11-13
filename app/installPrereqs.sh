@@ -33,7 +33,12 @@ installCustomPythonModules()
     PIP_CMD="pip3 install"
     INSTALL_ARGS=$HOME/dev/windfire-security-client
     if [ -n "$ENVIRONMENT_OPTION" ] && [ "$ENVIRONMENT_OPTION" -eq 3 ]; then
-        INSTALL_ARGS=$HOME/dist/client-1.0.0-py3-none-any.whl
+        # Newest windfire-security-client wheel synced by the deployment, so version bumps need no change here
+        INSTALL_ARGS=$(ls -v $HOME/dist/client-*-py3-none-any.whl 2>/dev/null | tail -1)
+        if [ -z "$INSTALL_ARGS" ]; then
+            echo -e "${RED}Error: no client-*.whl found in $HOME/dist${RESET}"
+            return 1
+        fi
         PIP_CMD="pip3 install $INSTALL_ARGS"
     else
         PIP_CMD="pip3 install -e $INSTALL_ARGS"
