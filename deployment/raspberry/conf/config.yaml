@@ -25,6 +25,8 @@ app_name: Windfire Calendar Service API
 api_port: 8000
 api_port_secure: 8443
 allowed_hosts: raspberry02,localhost
+# Browser origins allowed to call the API (windfire-ui-react on raspberry01)
+cors_origins: https://raspberry01:8445
 health_check_host: raspberry02
 log_level: INFO
 log_file: logs/windfire_calendar.log

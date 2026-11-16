@@ -1,4 +1,5 @@
 import os
+import sys
 import uvicorn # pyright: ignore[reportMissingImports]
 from contextlib import asynccontextmanager
 from datetime import datetime, UTC
@@ -60,13 +61,18 @@ else:
 # =======================================================================
 # ================== START - Enable CORS configuration ==================
 # =======================================================================
+if '*' in CORS_ORIGINS:
+    logger.error("CORS_ORIGINS must not contain '*': list the allowed browser origins explicitly "
+                 "(scheme://host[:port], comma-separated) or leave it empty to disable cross-origin requests")
+    sys.exit(1)
 logger.info(f"CORS origins configured: {CORS_ORIGINS or 'none (cross-origin requests disabled)'}")
+# The API authenticates with bearer tokens in the Authorization header, not cookies, so no credentialed CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 # =====================================================================
 # ================== END - Enable CORS configuration ==================
