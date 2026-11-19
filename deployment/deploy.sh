@@ -235,7 +235,7 @@ printHelp() {
     echo -e "4. Check app/credentials.json and app/token.json"
     echo -e "5. Ask for the Windfire Security host, port and service"
     echo -e "6. Run the Ansible playbook (asks for the sudo password of user pi on the Raspberry):"
-    echo -e "   check the shared Windfire Root CA in /etc/windfire/ca (installed by windfire-raspberry's deploy-windfire-ca.sh),"
+    echo -e "   check the shared Windfire Root CA in /etc/windfire/ca (installed by windfire-raspberry's configure-windfire-infra.sh --tags windfire_ca),"
     echo -e "   deploy, start the systemd service and health-check it"
     echo
     echo -e "${BOLD}EXIT CODES:${RESET}"
