@@ -60,7 +60,8 @@
         daemon_reload: yes
 
     # Task 3: Delete Windfire Calendar directory on remote server
-    # The pi user, the shared Windfire Root CA, the windfire-security-client dist folder and /home/pi/logs are left in place
+    # The pi user, the shared CA certificates in /etc/windfire/ca (owned by windfire-raspberry), the windfire-security-client
+    # dist folder and /home/pi/logs are left in place
     - name: Remove "{{ remote_windfire_calendar_dir }}" folder and all its contents on remote server
       ansible.builtin.file:
         path: "{{ remote_windfire_calendar_dir }}"

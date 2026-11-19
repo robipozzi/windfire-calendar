@@ -13,8 +13,8 @@ Environment=WINDFIRE_SECURITY_ENVIRONMENT=prod
 Environment=WINDFIRE_SECURITY_HOST={{ windfire_security_host }}
 Environment=WINDFIRE_SECURITY_PORT={{ windfire_security_port }}
 Environment=VERIFY_SSL_CERTS=true
-# The service user's own copy of the Windfire Root CA: the shared truststore under the pi home folder is not readable by it
-Environment=ROOT_CA_PATH={{ remote_windfire_calendar_dir }}/app/ssl/{{ windfire_ca_root_certificate }}
+# The shared, root-owned Windfire Root CA installed by windfire-raspberry (configure-windfire-infra.sh --tags windfire_ca), readable by every service user
+Environment=ROOT_CA_PATH={{ windfire_ca_dir }}/{{ windfire_ca_root_certificate }}
 Environment=LOG_LEVEL={{ log_level }}
 # windfire-security-client defaults to $HOME/logs, and the service user has no home: keep its log in the writable logs directory
 Environment=WINDFIRE_SECURITY_CLIENT_LOG_DIR={{ remote_windfire_calendar_dir }}/app/logs
