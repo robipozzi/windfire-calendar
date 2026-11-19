@@ -1,4 +1,4 @@
-# SSH/sudo user; stages the application and owns the shared truststore under its home folder
+# SSH/sudo user; stages the application under its home folder
 user: pi
 group: pi
 # System user and group the service runs as: no login shell, no supplementary groups (not in sudo)
@@ -6,12 +6,10 @@ service_user: windfire-calendar
 service_group: windfire-calendar
 local_home_dir: "{{ lookup('env', 'HOME') }}"
 local_ssl_dir: "{{ local_home_dir }}/opt/windfire/ssl"
-local_truststore_dir: "{{ local_ssl_dir }}/truststore"
 local_certs_dir: "{{ local_ssl_dir }}/certs/raspberry"
 remote_home_dir: /home/pi
-remote_ssl_dir: "{{ remote_home_dir }}/opt/windfire/ssl"
-remote_keystore_dir: "{{ remote_ssl_dir }}/keystore"
-remote_truststore_dir: "{{ remote_ssl_dir }}/truststore"
+# Shared, root-owned CA folder installed by windfire-raspberry (deploy-windfire-ca.sh): this playbook only checks it
+windfire_ca_dir: /etc/windfire/ca
 windfire_ca_root_certificate: "WindfireRootCA.crt"
 windfire_server_certificate: "windfire-calendar.crt"
 windfire_server_key: "windfire-calendar.key"

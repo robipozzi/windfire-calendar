@@ -72,7 +72,6 @@ deployToRaspberry()
     echo -e "${BLU}Deploy Windfire Calendar component to Raspberry Pi ...${RESET}"
     echo
     checkPrerequisites
-    checkRootCA
     checkSSLCertificates
     checkSecurityClientWheel
     checkAppConfig
@@ -104,18 +103,6 @@ checkPrerequisites()
         exit 1
     fi
     echo -e "${GREEN}Ansible SSH key found: $ANSIBLE_SSH_KEY${RESET}"
-    echo
-}
-
-checkRootCA()
-{
-    printBanner "Check Windfire Root CA"
-    if [ ! -f "$WINDFIRE_DEFAULT_TRUSTSTORE_DIR/$WINDFIRE_ROOT_CA_CERTIFICATE" ]; then
-        echo -e "${RED}Error: Windfire Root CA $WINDFIRE_DEFAULT_TRUSTSTORE_DIR/$WINDFIRE_ROOT_CA_CERTIFICATE not found${RESET}"
-        echo -e "${RED}Create it with windfire-security/ssl/createRootCA.sh first${RESET}"
-        exit 1
-    fi
-    echo -e "${GREEN}Windfire Root CA found in $WINDFIRE_DEFAULT_TRUSTSTORE_DIR${RESET}"
     echo
 }
 
@@ -243,12 +230,12 @@ printHelp() {
     echo
     echo -e "${BOLD}WHAT THIS SCRIPT DOES:${RESET}"
     echo -e "1. Check that ansible-playbook and the Ansible SSH key are available"
-    echo -e "2. Check that the Windfire Root CA exists"
-    echo -e "3. Check the production server certificate and key (generated if missing)"
-    echo -e "4. Check that the windfire-security-client wheel has been built"
-    echo -e "5. Check app/credentials.json and app/token.json"
-    echo -e "6. Ask for the Windfire Security host, port and service"
-    echo -e "7. Run the Ansible playbook (asks for the sudo password of user pi on the Raspberry):"
+    echo -e "2. Check the production server certificate and key (generated if missing)"
+    echo -e "3. Check that the windfire-security-client wheel has been built"
+    echo -e "4. Check app/credentials.json and app/token.json"
+    echo -e "5. Ask for the Windfire Security host, port and service"
+    echo -e "6. Run the Ansible playbook (asks for the sudo password of user pi on the Raspberry):"
+    echo -e "   check the shared Windfire Root CA in /etc/windfire/ca (installed by windfire-raspberry's deploy-windfire-ca.sh),"
     echo -e "   deploy, start the systemd service and health-check it"
     echo
     echo -e "${BOLD}EXIT CODES:${RESET}"
