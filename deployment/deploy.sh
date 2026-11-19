@@ -230,7 +230,7 @@ printHelp() {
     echo
     echo -e "${BOLD}DESCRIPTION:${RESET}"
     echo -e "Deploys the Windfire Calendar API to the calendar_service Ansible host group"
-    echo -e "and runs it as the windfire-calendar systemd service."
+    echo -e "and runs it as the windfire-calendar systemd service, under the windfire-calendar system user."
     echo
     echo -e "${BOLD}USAGE:${RESET}"
     echo -e "    ./deploy.sh [1]"

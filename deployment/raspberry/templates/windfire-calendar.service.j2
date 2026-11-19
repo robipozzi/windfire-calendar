@@ -5,16 +5,18 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User={{ user }}
+User={{ service_user }}
+Group={{ service_group }}
 WorkingDirectory={{ remote_windfire_calendar_dir }}/app
 Environment=ENVIRONMENT=prod
 Environment=WINDFIRE_SECURITY_ENVIRONMENT=prod
 Environment=WINDFIRE_SECURITY_HOST={{ windfire_security_host }}
 Environment=WINDFIRE_SECURITY_PORT={{ windfire_security_port }}
 Environment=VERIFY_SSL_CERTS=true
-Environment=ROOT_CA_PATH={{ remote_truststore_dir }}/{{ windfire_ca_root_certificate }}
+# The service user's own copy of the Windfire Root CA: the shared truststore under the pi home folder is not readable by it
+Environment=ROOT_CA_PATH={{ remote_windfire_calendar_dir }}/app/ssl/{{ windfire_ca_root_certificate }}
 Environment=LOG_LEVEL={{ log_level }}
-# windfire-security-client defaults to $HOME/logs, read-only under ProtectHome: keep its log in the writable logs directory
+# windfire-security-client defaults to $HOME/logs, and the service user has no home: keep its log in the writable logs directory
 Environment=WINDFIRE_SECURITY_CLIENT_LOG_DIR={{ remote_windfire_calendar_dir }}/app/logs
 LoadCredentialEncrypted={{ service_name }}-google-client:/etc/credstore.encrypted/{{ service_name }}-google-client
 LoadCredentialEncrypted={{ service_name }}-google-token:/etc/credstore.encrypted/{{ service_name }}-google-token
@@ -28,6 +30,8 @@ StandardOutput=append:{{ remote_windfire_calendar_dir }}/app/logs/{{ service_nam
 StandardError=append:{{ remote_windfire_calendar_dir }}/app/logs/{{ service_name }}.log
 # Sandbox: the whole filesystem is read-only to the service (ProtectSystem=strict, ProtectHome=read-only)
 # except ReadWritePaths, the logs directory the app writes to.
+# ProtectHome stays read-only, not yes: the application folder is under {{ remote_home_dir }}
+# (the service user reaches it through a traverse-only ACL on {{ remote_home_dir }}).
 # The app directory stays read-only: the Google token is read from the read-only credentials directory (%d)
 # and refreshed in memory only, never written back.
 # No MemoryDenyWriteExecute: it breaks JIT runtimes (JVM, Node/V8) and some Python wheels.

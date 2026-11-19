@@ -2,6 +2,8 @@
 # Windfire Calendar deployment tasks, shared by windfire-calendar-deploy.yaml and windfire-calendar-full-deploy.yaml.
 # The play runs with become (root): tasks that write under the pi home folder either set owner/group
 # or run as the connecting user with "become: false", so parent folders are never created as root.
+# The application is staged as pi (rsync, venv and pip run as the connecting user), then the whole
+# application folder is handed over to the service user before the service starts.
 
 # Task 0: Check that deploy.sh exported the Windfire Security configuration
 - name: Check Windfire Security configuration is set
@@ -38,6 +40,34 @@
   loop_control:
     label: "app/{{ item.item }}"
   run_once: true
+
+# Task 0b: Create the system user the service runs as
+- name: Create "{{ service_group }}" system group
+  ansible.builtin.group:
+    name: "{{ service_group }}"
+    system: yes
+    state: present
+
+- name: Create "{{ service_user }}" system user (no login shell, no supplementary groups)
+  ansible.builtin.user:
+    name: "{{ service_user }}"
+    group: "{{ service_group }}"
+    groups: ""
+    append: no
+    system: yes
+    shell: /usr/sbin/nologin
+    home: /nonexistent
+    create_home: no
+    state: present
+
+# {{ remote_home_dir }} is 0700: let the service user traverse it (no read/list) to reach the application folder
+- name: Allow "{{ service_user }}" to traverse {{ remote_home_dir }}
+  ansible.posix.acl:
+    path: "{{ remote_home_dir }}"
+    entity: "{{ service_user }}"
+    etype: user
+    permissions: x
+    state: present
 
 # Task 1: Stop Windfire Calendar service on remote server
 - name: Stop "{{ service_name }}" systemd service if running
@@ -103,6 +133,15 @@
       - "--exclude=credentials.json"
   become: false
 
+# The service user's own TLS folder: only it can enter it
+- name: Make "{{ remote_windfire_calendar_dir }}/app/ssl" folder accessible only by {{ service_user }}
+  ansible.builtin.file:
+    path: "{{ remote_windfire_calendar_dir }}/app/ssl"
+    state: directory
+    owner: "{{ service_user }}"
+    group: "{{ service_group }}"
+    mode: "0500"
+
 - name: Create "{{ remote_windfire_calendar_dir }}/app/logs" directory on remote server
   ansible.builtin.file:
     path: "{{ remote_windfire_calendar_dir }}/app/logs"
@@ -116,11 +155,12 @@
   ansible.builtin.template:
     src: "{{ src_dir }}/templates/windfire-calendar.env.j2"
     dest: "{{ remote_windfire_calendar_dir }}/app/.env"
-    owner: "{{ user }}"
-    group: "{{ group }}"
+    owner: "{{ service_user }}"
+    group: "{{ service_group }}"
     mode: "0600"
 
-# Task 5: Remove plaintext Google OAuth files left by older deployments, then copy TLS material to remote server
+# Task 5: Remove plaintext Google OAuth files left by older deployments, then copy TLS material to remote server:
+# the service user's own copy of the certificate, key and Windfire Root CA (ROOT_CA_PATH in the systemd unit)
 # credentials.json and token.json are encrypted with systemd-creds in Task 8 and never stored in plaintext on the Pi
 - name: Remove plaintext Google OAuth files from "{{ remote_windfire_calendar_dir }}/app" on remote server, if any
   file:
@@ -134,18 +174,27 @@
   copy:
     src: "{{ local_certs_dir }}/{{ windfire_server_certificate }}"
     dest: "{{ remote_windfire_calendar_dir }}/app/ssl/{{ windfire_server_certificate }}"
-    owner: "{{ user }}"
-    group: "{{ group }}"
-    mode: "0644"
+    owner: "{{ service_user }}"
+    group: "{{ service_group }}"
+    mode: "0444"
 
 - name: Copy key {{ windfire_server_key }} from {{ local_certs_dir }} to "{{ remote_windfire_calendar_dir }}/app/ssl" directory on remote server
   copy:
     src: "{{ local_certs_dir }}/{{ windfire_server_key }}"
     dest: "{{ remote_windfire_calendar_dir }}/app/ssl/{{ windfire_server_key }}"
-    owner: "{{ user }}"
-    group: "{{ group }}"
-    mode: "0600"
+    owner: "{{ service_user }}"
+    group: "{{ service_group }}"
+    mode: "0400"
 
+- name: Copy {{ windfire_ca_root_certificate }} from {{ local_truststore_dir }} to "{{ remote_windfire_calendar_dir }}/app/ssl" directory on remote server
+  copy:
+    src: "{{ local_truststore_dir }}/{{ windfire_ca_root_certificate }}"
+    dest: "{{ remote_windfire_calendar_dir }}/app/ssl/{{ windfire_ca_root_certificate }}"
+    owner: "{{ service_user }}"
+    group: "{{ service_group }}"
+    mode: "0444"
+
+# Shared Windfire Root CA truststore (the service itself uses its own copy in app/ssl)
 - name: Ensure remote truststore directory {{ remote_truststore_dir }} exists
   file:
     path: "{{ remote_truststore_dir }}"
@@ -214,6 +263,15 @@
 - name: Display installed packages
   debug:
     var: pip_list.stdout_lines
+
+# Task 7b: Hand the application folder over to the service user (owner/group only: file modes are kept)
+- name: Change owner of "{{ remote_windfire_calendar_dir }}" and its contents to {{ service_user }}
+  ansible.builtin.file:
+    path: "{{ remote_windfire_calendar_dir }}"
+    state: directory
+    recurse: yes
+    owner: "{{ service_user }}"
+    group: "{{ service_group }}"
 
 # Task 8: Encrypt the Google OAuth files at rest with systemd-creds (plaintext never written to disk)
 - name: Ensure /etc/credstore.encrypted directory exists

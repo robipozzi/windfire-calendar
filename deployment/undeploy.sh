@@ -79,7 +79,7 @@ confirmUndeploy()
         return
     fi
     local answer
-    read -r -p "${YELLOW}This stops and removes the windfire-calendar service, its encrypted secret and application folder. Continue? [y/N]: ${END}" answer
+    read -r -p "${YELLOW}This stops and removes the windfire-calendar service, its encrypted secret, application folder and system user. Continue? [y/N]: ${END}" answer
     case $answer in
         y|Y|yes|YES) ;;
         *)  echo -e "${CYAN}Undeploy cancelled${RESET}"
@@ -114,8 +114,8 @@ printHelp() {
     echo -e "${BOLD}╚═════════════════════════════════════════════════════════╝${RESET}"
     echo
     echo -e "${BOLD}DESCRIPTION:${RESET}"
-    echo -e "Stops and removes the windfire-calendar systemd service, its encrypted secret"
-    echo -e "and the application folder from the calendar_service Ansible host group."
+    echo -e "Stops and removes the windfire-calendar systemd service, its encrypted secret, the application"
+    echo -e "folder and the windfire-calendar system user and group from the calendar_service Ansible host group."
     echo
     echo -e "${BOLD}USAGE:${RESET}"
     echo -e "    ./undeploy.sh [1] [-y]"
