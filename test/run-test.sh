@@ -31,6 +31,7 @@ run()
 
     # Show configuration
     display_config
+    remind_calendar_srv
 
     # Start local Windfire Security / Windfire Calendar servers when needed; cleanup() stops them on exit
     trap cleanup EXIT
@@ -58,6 +59,16 @@ run()
     SECURITY_ENVIRONMENT=$SECURITY_ENVIRONMENT \
     ROOT_CA_PATH=$WINDFIRE_DEFAULT_TRUSTSTORE_DIR/$WINDFIRE_ROOT_CA_CERTIFICATE \
     python3 test.py
+}
+
+remind_calendar_srv()
+{
+    echo -e "${YELLOW}Reminder: make sure windfire-calendar-srv is enabled before running the tests${RESET}"
+    # Wait for Enter only when there is a terminal to read from
+    if [ -t 0 ]; then
+        read -r -p "Press Enter to continue ..."
+    fi
+    echo
 }
 
 # ===== LOCAL SERVERS START/STOP FUNCTIONS =====
