@@ -63,7 +63,7 @@ run()
 
 remind_calendar_srv()
 {
-    echo -e "${YELLOW}Reminder: make sure windfire-calendar-srv is enabled before running the tests${RESET}"
+    echo -e "${RED}Reminder: make sure windfire-calendar-srv is enabled before running the tests${RESET}"
     # Wait for Enter only when there is a terminal to read from
     if [ -t 0 ]; then
         read -r -p "Press Enter to continue ..."
